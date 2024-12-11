@@ -38,7 +38,7 @@ class Property(Base):
     __tablename__ = "properties"
 
     id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    user_id = Column(String, ForeignKey("users.id"), nullable=False)
     name = Column(String, nullable=False)
     description = Column(Text)
     property_type = Column(Enum(PropertyType), nullable=False)

@@ -2,8 +2,8 @@ from fastapi import FastAPI, HTTPException, Depends
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from app.database import SessionLocal
-from models import Property, Room, Product, ProductSpecification, ProductDimension, Image
-from schemas import PropertySchema  # 追加
+from app.models import Property, Room, Product, ProductSpecification, ProductDimension, Image
+from app.schemas import PropertySchema  # 追加
 
 app = FastAPI()
 

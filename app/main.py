@@ -103,9 +103,7 @@ async def create_property(property_data: PropertySchema, db: Session = Depends(g
                             spec = ProductSpecification(
                                 product_id=product.id,
                                 spec_type=spec_data.spec_type,
-                                spec_value=spec_data.spec_value,
-                                manufacturer_id=spec_data.manufacturer_id,
-                                model_number=spec_data.model_number
+                                spec_value=spec_data.spec_value
                             )
                             db.add(spec)
                         db.flush()

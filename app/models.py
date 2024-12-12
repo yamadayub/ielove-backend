@@ -5,13 +5,13 @@ from app.database import Base
 import enum
 
 
-class CompanyTypes:
+class CompanyType(str, enum.Enum):
     MANUFACTURER = "manufacturer"
     DESIGN = "design"
     CONSTRUCTION = "construction"
 
 
-class PropertyTypes:
+class PropertyType(str, enum.Enum):
     HOUSE = "house"
     APARTMENT = "apartment"
     OTHER = "other"
@@ -22,7 +22,7 @@ class Company(Base):
 
     id = Column(Integer, primary_key=True)
     name = Column(String, nullable=False)
-    company_type = Column(String, nullable=False)
+    company_type = Column(Enum(CompanyType), nullable=False)
     description = Column(Text)
     website = Column(String)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
@@ -41,7 +41,7 @@ class Property(Base):
     user_id = Column(String, ForeignKey("users.id"), nullable=False)
     name = Column(String, nullable=False)
     description = Column(Text)
-    property_type = Column(String, nullable=False)
+    property_type = Column(Enum(PropertyType), nullable=False)
     prefecture = Column(String, nullable=False)
     layout = Column(String)  # 3LDKなど
     construction_year = Column(Integer)
@@ -156,7 +156,7 @@ class ProductDimension(Base):
     product = relationship("Product", back_populates="dimensions")
 
 
-class ImageTypes:
+class ImageType(str, enum.Enum):
     MAIN = "main"
     SUB = "sub"
 
@@ -167,7 +167,7 @@ class Image(Base):
     id = Column(Integer, primary_key=True)
     url = Column(String, nullable=False)  # S3のURL
     description = Column(Text)
-    image_type = Column(String, nullable=False)
+    image_type = Column(Enum(ImageType), nullable=False)
     property_id = Column(Integer, ForeignKey("properties.id"), nullable=True)
     room_id = Column(Integer, ForeignKey("rooms.id"), nullable=True)
     product_id = Column(Integer, ForeignKey("products.id"), nullable=True)
@@ -178,12 +178,12 @@ class Image(Base):
     product = relationship("Product", back_populates="images")
 
 
-class UserTypes:
+class UserType(str, enum.Enum):
     INDIVIDUAL = "individual"  # 個人
     BUSINESS = "business"      # 法人
 
 
-class UserRoles:
+class UserRole(str, enum.Enum):
     BUYER = "buyer"           # 買い手のみ
     SELLER = "seller"         # 売り手のみ
     BOTH = "both"            # 両方
@@ -195,8 +195,8 @@ class User(Base):
     id = Column(String, primary_key=True)  # Clerk User ID
     email = Column(String, unique=True, nullable=False)
     name = Column(String, nullable=False)
-    user_type = Column(String, nullable=False)
-    role = Column(String, nullable=False, default=UserRoles.BUYER)
+    user_type = Column(Enum(UserType), nullable=False)
+    role = Column(Enum(UserRole), nullable=False, default=UserRole.BUYER)
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     last_sign_in = Column(DateTime(timezone=True))

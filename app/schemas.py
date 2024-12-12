@@ -18,8 +18,8 @@ class ProductSpecificationSchema(BaseModel):
     product_id: Optional[int]
     spec_type: str
     spec_value: str
-    manufacturer_id: Optional[int]
-    model_number: Optional[str]
+    manufacturer_id: Optional[int] = None
+    model_number: Optional[str] = None
 
 class ProductDimensionSchema(BaseModel):
     id: Optional[int]

@@ -4,7 +4,7 @@ from typing import List, Optional
 from app.models import ImageType, PropertyType
 
 class ImageSchema(BaseModel):
-    id: Optional[int]
+    id: Optional[int] = None
     url: str
     description: Optional[str]
     image_type: ImageType
@@ -13,7 +13,7 @@ class ImageSchema(BaseModel):
     product_id: Optional[int] = None
 
 class ProductSpecificationSchema(BaseModel):
-    id: Optional[int]
+    id: Optional[int] = None
     product_id: Optional[int] = None
     spec_type: str
     spec_value: str
@@ -21,14 +21,14 @@ class ProductSpecificationSchema(BaseModel):
     model_number: Optional[str] = None
 
 class ProductDimensionSchema(BaseModel):
-    id: Optional[int]
+    id: Optional[int] = None
     product_id: Optional[int] = None
     dimension_type: str
     value: float
     unit: str
 
 class ProductSchema(BaseModel):
-    id: Optional[int]
+    id: Optional[int] = None
     property_id: Optional[int] = None
     room_id: Optional[int] = None
     product_category_id: int
@@ -42,7 +42,7 @@ class ProductSchema(BaseModel):
     images: Optional[List[ImageSchema]] = []
 
 class RoomSchema(BaseModel):
-    id: Optional[int]
+    id: Optional[int] = None
     property_id: Optional[int] = None
     name: str
     description: Optional[str] = None
@@ -50,7 +50,7 @@ class RoomSchema(BaseModel):
     images: Optional[List[ImageSchema]] = []
 
 class PropertySchema(BaseModel):
-    id: Optional[int]
+    id: Optional[int] = None
     user_id: str
     name: str
     description: Optional[str] = None

@@ -2,7 +2,7 @@
 from pydantic import BaseModel
 from typing import List, Optional
 
-from app.models import ImageType
+from app.models import ImageType, PropertyType
 
 class ImageSchema(BaseModel):
     id: Optional[int]
@@ -55,7 +55,7 @@ class PropertySchema(BaseModel):
     user_id: Optional[str]
     name: str
     description: Optional[str]
-    property_type: str
+    property_type: PropertyType
     prefecture: str
     layout: Optional[str]
     construction_year: Optional[int]

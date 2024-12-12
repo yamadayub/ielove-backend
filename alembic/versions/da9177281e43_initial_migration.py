@@ -17,12 +17,15 @@ branch_labels = None
 depends_on = None
 
 def upgrade():
+    # Drop existing enum if exists
+    op.execute('DROP TYPE IF EXISTS propertytype')
+    
     op.create_table('properties',
         sa.Column('id', sa.Integer(), nullable=False),
         sa.Column('user_id', sa.String(), nullable=False),
         sa.Column('name', sa.String(), nullable=False),
         sa.Column('description', sa.Text(), nullable=True),
-        sa.Column('property_type', sa.Enum(PropertyType, name='propertytype', create_type=False), nullable=False),
+        sa.Column('property_type', sa.Enum(PropertyType, name='propertytype'), nullable=False),
         sa.Column('prefecture', sa.String(), nullable=False),
         sa.Column('layout', sa.String(), nullable=True),
         sa.Column('construction_year', sa.Integer(), nullable=True),

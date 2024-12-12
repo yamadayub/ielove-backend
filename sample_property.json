@@ -1,0 +1,58 @@
+
+{
+  "user_id": "user123",
+  "name": "モダンな新築一戸建て",
+  "description": "自然光が差し込む明るいリビングが特徴の住宅です",
+  "property_type": "house",
+  "prefecture": "東京都",
+  "layout": "3LDK",
+  "construction_year": 2023,
+  "construction_month": 6,
+  "site_area": 120.5,
+  "building_area": 85.3,
+  "floor_count": 2,
+  "structure": "木造",
+  "images": [
+    {
+      "url": "https://example.com/property1.jpg",
+      "description": "外観",
+      "image_type": "main"
+    }
+  ],
+  "rooms": [
+    {
+      "name": "リビング",
+      "description": "大きな窓のある開放的な空間",
+      "images": [
+        {
+          "url": "https://example.com/living1.jpg",
+          "description": "リビングルーム全体",
+          "image_type": "main"
+        }
+      ],
+      "products": [
+        {
+          "product_category_id": 1,
+          "manufacturer_id": 1,
+          "name": "フローリング",
+          "model_number": "FL-001",
+          "description": "オーク材の床材",
+          "catalog_url": "https://example.com/catalog/fl001",
+          "specifications": [
+            {
+              "spec_type": "材質",
+              "spec_value": "オーク"
+            }
+          ],
+          "dimensions": [
+            {
+              "dimension_type": "厚さ",
+              "value": 12.0,
+              "unit": "mm"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -142,3 +142,10 @@ async def create_property(property_data: PropertySchema, db: Session = Depends(g
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=400, detail=str(e))
+
+@app.exception_handler(422)
+async def validation_exception_handler(request, exc):
+    return JSONResponse(
+        status_code=422,
+        content={"detail": exc.errors()}
+    )

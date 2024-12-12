@@ -38,4 +38,17 @@ def upgrade():
     )
 
 def downgrade():
+    # Drop tables in correct order (reverse dependencies)
+    op.drop_table('sales')
+    op.drop_table('purchases')
+    op.drop_table('products_for_sale')
+    op.drop_table('product_specifications')
+    op.drop_table('product_dimensions')
+    op.drop_table('images')
+    op.drop_table('products')
+    op.drop_table('rooms')
     op.drop_table('properties')
+    op.drop_table('seller_profiles')
+    op.drop_table('users')
+    op.drop_table('companies')
+    op.drop_table('product_categories')

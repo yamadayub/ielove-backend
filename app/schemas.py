@@ -31,6 +31,8 @@ class RoomSchema(BaseModel):
     property_id: Optional[int]
     name: str
     description: Optional[str]
+    products: Optional[List["ProductSchema"]] = []
+    images: Optional[List[ImageSchema]] = []
 
 class ProductSchema(BaseModel):
     id: Optional[int]
@@ -42,6 +44,9 @@ class ProductSchema(BaseModel):
     model_number: str
     description: Optional[str]
     catalog_url: Optional[str]
+    specifications: Optional[List[ProductSpecificationSchema]] = []
+    dimensions: Optional[List[ProductDimensionSchema]] = []
+    images: Optional[List[ImageSchema]] = []
 
 class PropertySchema(BaseModel):
     id: Optional[int]
@@ -60,9 +65,6 @@ class PropertySchema(BaseModel):
     design_company_id: Optional[int]
     construction_company_id: Optional[int]
     rooms: Optional[List[RoomSchema]] = []
-    products: Optional[List[ProductSchema]] = []
-    product_specifications: Optional[List[ProductSpecificationSchema]] = []
-    product_dimensions: Optional[List[ProductDimensionSchema]] = []
     images: Optional[List[ImageSchema]] = []
 
     class Config:

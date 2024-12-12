@@ -23,7 +23,7 @@ async def get_property_details(property_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Property not found")
     return property
 
-@app.post("/properties", response_model=dict)
+@app.post("/properties", response_model=PropertySchema)
 async def create_property(property_data: PropertySchema, db: Session = Depends(get_db)):
     # Create property
     new_property = Property(
@@ -104,8 +104,8 @@ async def create_property(property_data: PropertySchema, db: Session = Depends(g
                                 product_id=product.id,
                                 spec_type=spec_data.spec_type,
                                 spec_value=spec_data.spec_value,
-                                manufacturer_id=spec_data.manufacturer_id,
-                                model_number=spec_data.model_number
+                                manufacturer_id=spec_data.manufacturer_id if spec_data.manufacturer_id else None,
+                                model_number=spec_data.model_number if spec_data.model_number else None
                             )
                             db.add(spec)
                         db.flush()

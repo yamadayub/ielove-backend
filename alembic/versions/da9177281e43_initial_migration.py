@@ -247,29 +247,34 @@ def upgrade():
     )
 
 def downgrade():
-    # Drop tables in correct order (reverse dependencies)
-    for table in [
+    # テーブルの削除順序を定義
+    tables = [
         'sales', 'purchases', 'products_for_sale', 'product_specifications',
         'product_dimensions', 'images', 'products', 'rooms', 'properties',
         'seller_profiles', 'users', 'companies', 'product_categories'
-    ]:
-        try:
-            op.drop_table(table)
-        except Exception:
-            print(f"Warning: Could not drop table {table}")
-
-    # Drop enums
-    for enum in [
+    ]
+    
+    # enumの削除順序を定義
+    enums = [
         'propertytype', 'imagetype', 'companytype', 'usertype',
         'userrole', 'saletype', 'salestatus', 'consultationtype'
-    ]:
-        try:
-            op.execute(f'DROP TYPE IF EXISTS {enum}')
-        except Exception:
-            print(f"Warning: Could not drop enum type {enum}")
+    ]
 
-    # Drop enums
-    op.execute('DROP TYPE IF EXISTS propertytype')
+    # 各テーブルを個別のトランザクションで削除
+    for table in tables:
+        try:
+            with op.get_context().begin_transaction():
+                op.drop_table(table)
+        except Exception as e:
+            print(f"Warning: Could not drop table {table}: {str(e)}")
+            
+    # 各enumを個別のトランザクションで削除
+    for enum in enums:
+        try:
+            with op.get_context().begin_transaction():
+                op.execute(f'DROP TYPE IF EXISTS {enum}')
+        except Exception as e:
+            print(f"Warning: Could not drop enum {enum}: {str(e)}")
     op.execute('DROP TYPE IF EXISTS imagetype')
     op.execute('DROP TYPE IF EXISTS companytype')
     op.execute('DROP TYPE IF EXISTS usertype')

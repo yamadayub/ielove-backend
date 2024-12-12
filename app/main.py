@@ -81,45 +81,6 @@ async def create_property(property_data: PropertySchema, db: Session = Depends(g
                     db.add(image)
                 db.flush()
 
-            # Create room products
-            if room_data.products:
-                for product_data in room_data.products:
-                    product = Product(
-                        property_id=new_property.id,
-                        room_id=room.id,
-                        product_category_id=product_data.product_category_id,
-                        manufacturer_id=product_data.manufacturer_id,
-                        name=product_data.name,
-                        model_number=product_data.model_number,
-                        description=product_data.description,
-                        catalog_url=product_data.catalog_url
-                    )
-                    db.add(product)
-                    db.flush()
-
-                    # Create product specifications
-                    if product_data.specifications:
-                        for spec_data in product_data.specifications:
-                            spec = ProductSpecification(
-                                product_id=product.id,
-                                spec_type=spec_data.spec_type,
-                                spec_value=spec_data.spec_value
-                            )
-                            db.add(spec)
-
-                    # Create product dimensions
-                    if product_data.dimensions:
-                        for dim_data in product_data.dimensions:
-                            dimension = ProductDimension(
-                                product_id=product.id,
-                                dimension_type=dim_data.dimension_type,
-                                value=dim_data.value,
-                                unit=dim_data.unit
-                            )
-                            db.add(dimension)
-                    
-                    db.flush()
-
             # Create products with nested specifications, dimensions and images
             if room_data.products:
                 for product_data in room_data.products:

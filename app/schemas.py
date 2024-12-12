@@ -1,13 +1,13 @@
 
 from pydantic import BaseModel
 from typing import List, Optional
-from app.models import ImageType, PropertyType
+from typing_extensions import Literal
 
 class ImageSchema(BaseModel):
     id: Optional[int] = None
     url: str
     description: Optional[str]
-    image_type: ImageType
+    image_type: Literal["main", "sub"]
     property_id: Optional[int] = None
     room_id: Optional[int] = None
     product_id: Optional[int] = None

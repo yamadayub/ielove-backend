@@ -1,28 +1,15 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Text, Float, Enum, JSON, Boolean
+
+from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Text, Float, Boolean
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.database import Base
-import enum
-
-
-class CompanyType(str, enum.Enum):
-    MANUFACTURER = "manufacturer"
-    DESIGN = "design"
-    CONSTRUCTION = "construction"
-
-
-class PropertyType(str, enum.Enum):
-    HOUSE = "house"
-    APARTMENT = "apartment"
-    OTHER = "other"
-
 
 class Company(Base):
     __tablename__ = "companies"
 
     id = Column(Integer, primary_key=True)
     name = Column(String, nullable=False)
-    company_type = Column(Enum(CompanyType), nullable=False)
+    company_type = Column(String, nullable=False)  # manufacturer, design, construction
     description = Column(Text)
     website = Column(String)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
@@ -41,19 +28,17 @@ class Property(Base):
     user_id = Column(String, ForeignKey("users.id"), nullable=False)
     name = Column(String, nullable=False)
     description = Column(Text)
-    property_type = Column(Enum(PropertyType), nullable=False)
+    property_type = Column(String, nullable=False)  # house, apartment, other
     prefecture = Column(String, nullable=False)
-    layout = Column(String)  # 3LDKなど
+    layout = Column(String)
     construction_year = Column(Integer)
     construction_month = Column(Integer)
-    site_area = Column(Float)  # 敷地面積(m2)
-    building_area = Column(Float)  # 建築面積(m2)
-    floor_count = Column(Integer)  # 階数
-    structure = Column(String)  # 構造種別
-    design_company_id = Column(
-        Integer, ForeignKey("companies.id"), nullable=True)
-    construction_company_id = Column(
-        Integer, ForeignKey("companies.id"), nullable=True)
+    site_area = Column(Float)
+    building_area = Column(Float)
+    floor_count = Column(Integer)
+    structure = Column(String)
+    design_company_id = Column(Integer, ForeignKey("companies.id"), nullable=True)
+    construction_company_id = Column(Integer, ForeignKey("companies.id"), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     user = relationship("User", back_populates="properties")
@@ -76,7 +61,7 @@ class Room(Base):
 
     id = Column(Integer, primary_key=True)
     property_id = Column(Integer, ForeignKey("properties.id"), nullable=False)
-    name = Column(String, nullable=False)  # トイレ、キッチンなど
+    name = Column(String, nullable=False)
     description = Column(Text)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
@@ -91,7 +76,7 @@ class ProductCategory(Base):
     __tablename__ = "product_categories"
 
     id = Column(Integer, primary_key=True)
-    name = Column(String, nullable=False)  # 壁紙、照明など
+    name = Column(String, nullable=False)
     description = Column(Text)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
@@ -105,7 +90,7 @@ class Product(Base):
     property_id = Column(Integer, ForeignKey("properties.id"), nullable=False)
     room_id = Column(Integer, ForeignKey("rooms.id"), nullable=False)
     product_category_id = Column(Integer, ForeignKey(
-        "product_categories.id"), nullable=False)  # ここも変更
+        "product_categories.id"), nullable=False)
     manufacturer_id = Column(Integer, ForeignKey(
         "companies.id"), nullable=False)
     name = Column(String, nullable=False)
@@ -117,7 +102,7 @@ class Product(Base):
     property = relationship("Property", back_populates="products")
     room = relationship("Room", back_populates="products")
     product_category = relationship(
-        "ProductCategory", back_populates="products")  # ここも変更
+        "ProductCategory", back_populates="products")
     manufacturer = relationship("Company", back_populates="products")
     specifications = relationship(
         "ProductSpecification", back_populates="product", cascade="all, delete-orphan")
@@ -132,11 +117,11 @@ class ProductSpecification(Base):
 
     id = Column(Integer, primary_key=True)
     product_id = Column(Integer, ForeignKey("products.id"), nullable=False)
-    spec_type = Column(String, nullable=False)  # 色、食洗機、シンクなど
-    spec_value = Column(String, nullable=False)  # グレー、ミーレ45cm、角形スタンダードなど
+    spec_type = Column(String, nullable=False)
+    spec_value = Column(String, nullable=False)
     manufacturer_id = Column(Integer, ForeignKey(
-        "companies.id"), nullable=True)  # 部品メーカーがある場合
-    model_number = Column(String)  # 部品の型番がある場合
+        "companies.id"), nullable=True)
+    model_number = Column(String)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     product = relationship("Product", back_populates="specifications")
@@ -148,26 +133,21 @@ class ProductDimension(Base):
 
     id = Column(Integer, primary_key=True)
     product_id = Column(Integer, ForeignKey("products.id"), nullable=False)
-    dimension_type = Column(String, nullable=False)  # width, height, depth など
+    dimension_type = Column(String, nullable=False)
     value = Column(Float, nullable=False)
-    unit = Column(String, nullable=False)  # mm, cm など
+    unit = Column(String, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     product = relationship("Product", back_populates="dimensions")
-
-
-class ImageType(str, enum.Enum):
-    MAIN = "main"
-    SUB = "sub"
 
 
 class Image(Base):
     __tablename__ = "images"
 
     id = Column(Integer, primary_key=True)
-    url = Column(String, nullable=False)  # S3のURL
+    url = Column(String, nullable=False)
     description = Column(Text)
-    image_type = Column(Enum(ImageType), nullable=False)
+    image_type = Column(String, nullable=False)  # main, sub
     property_id = Column(Integer, ForeignKey("properties.id"), nullable=True)
     room_id = Column(Integer, ForeignKey("rooms.id"), nullable=True)
     product_id = Column(Integer, ForeignKey("products.id"), nullable=True)
@@ -178,30 +158,18 @@ class Image(Base):
     product = relationship("Product", back_populates="images")
 
 
-class UserType(str, enum.Enum):
-    INDIVIDUAL = "individual"  # 個人
-    BUSINESS = "business"      # 法人
-
-
-class UserRole(str, enum.Enum):
-    BUYER = "buyer"           # 買い手のみ
-    SELLER = "seller"         # 売り手のみ
-    BOTH = "both"            # 両方
-
-
 class User(Base):
     __tablename__ = "users"
 
-    id = Column(String, primary_key=True)  # Clerk User ID
+    id = Column(String, primary_key=True)
     email = Column(String, unique=True, nullable=False)
     name = Column(String, nullable=False)
-    user_type = Column(Enum(UserType), nullable=False)
-    role = Column(Enum(UserRole), nullable=False, default=UserRole.BUYER)
+    user_type = Column(String, nullable=False)  # individual, business
+    role = Column(String, nullable=False, default='buyer')  # buyer, seller, both
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     last_sign_in = Column(DateTime(timezone=True))
 
-    # リレーション
     properties = relationship("Property", back_populates="user")
     seller_profile = relationship(
         "SellerProfile", back_populates="user", uselist=False)
@@ -213,7 +181,6 @@ class SellerProfile(Base):
 
     id = Column(Integer, primary_key=True)
     user_id = Column(String, ForeignKey("users.id"), nullable=False)
-    # 基本情報
     company_name = Column(String, nullable=True)
     representative_name = Column(String, nullable=True)
     postal_code = Column(String, nullable=True)
@@ -222,17 +189,16 @@ class SellerProfile(Base):
     business_registration_number = Column(String, nullable=True)
     tax_registration_number = Column(String, nullable=True)
 
-    # Stripe Connect関連（開発時はすべてnullable=True）
     stripe_account_id = Column(String, unique=True, nullable=True)
     stripe_account_status = Column(
         String,
         nullable=True,
-        default='pending'  # pending, onboarding, active, inactive
+        default='pending'
     )
     stripe_account_type = Column(
         String,
         nullable=True,
-        default='standard'  # standard, express, custom
+        default='standard'
     )
     stripe_onboarding_completed = Column(Boolean, default=False)
     stripe_charges_enabled = Column(Boolean, default=False)
@@ -252,15 +218,14 @@ class Purchase(Base):
     id = Column(Integer, primary_key=True)
     buyer_id = Column(String, ForeignKey("users.id"), nullable=False)
     product_for_sale_id = Column(Integer, ForeignKey(
-        "products_for_sale.id"), nullable=False)  # 追加
+        "products_for_sale.id"), nullable=False)
     amount = Column(Integer, nullable=False)
     status = Column(
         String,
         nullable=False,
-        default='pending'  # pending, processing, completed, failed, cancelled
+        default='pending'
     )
 
-    # Stripe関連（開発時はすべてnullable=True）
     stripe_payment_intent_id = Column(String, nullable=True, unique=True)
     stripe_payment_status = Column(String, nullable=True)
     stripe_transfer_id = Column(String, nullable=True, unique=True)
@@ -269,24 +234,6 @@ class Purchase(Base):
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
     buyer = relationship("User", back_populates="purchases")
-
-
-class SaleType(str, enum.Enum):
-    PROPERTY = "property"
-    ROOM = "room"
-    PRODUCT = "product"
-    CONSULTATION = "consultation"
-
-
-class SaleStatus(str, enum.Enum):
-    DRAFT = "draft"
-    PUBLISHED = "published"
-    SOLD = "sold"
-
-
-class ConsultationType(str, enum.Enum):
-    ONLINE = "online"
-    OFFLINE = "offline"
 
 
 class ProductForSale(Base):
@@ -298,25 +245,20 @@ class ProductForSale(Base):
     name = Column(String, nullable=False)
     description = Column(Text)
     price = Column(Integer, nullable=False)
-    # property, room, product, consultation など
-    sale_type = Column(Enum(SaleType), nullable=False)
-    consultation_type = Column(Enum(ConsultationType), nullable=True)
-    status = Column(Enum(SaleStatus), default=SaleStatus.DRAFT)
+    sale_type = Column(String, nullable=False)  # property, room, product, consultation
+    consultation_type = Column(String, nullable=True)  # online, offline
+    status = Column(String, default='draft')  # draft, published, sold
 
-    # 販売対象との関連
     property_id = Column(Integer, ForeignKey("properties.id"), nullable=True)
     room_id = Column(Integer, ForeignKey("rooms.id"), nullable=True)
     product_id = Column(Integer, ForeignKey("products.id"), nullable=True)
 
-    # 販売条件
-    is_negotiable = Column(Boolean, default=False)  # 価格交渉可能か
-    consultation_minutes = Column(Integer, nullable=True)  # コンサルテーション時間（分）
-    consultation_type = Column(String, nullable=True)  # online, offline など
+    is_negotiable = Column(Boolean, default=False)
+    consultation_minutes = Column(Integer, nullable=True)
 
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
-    # リレーション
     seller = relationship("SellerProfile", back_populates="products_for_sale")
     property = relationship("Property")
     room = relationship("Room")
@@ -340,10 +282,9 @@ class Sale(Base):
     status = Column(
         String,
         nullable=False,
-        default='pending'  # pending, processing, completed, failed, cancelled
+        default='pending'
     )
 
-    # Stripe関連（開発時はすべてnullable=True）
     stripe_transfer_id = Column(String, nullable=True, unique=True)
     stripe_transfer_status = Column(String, nullable=True)
 

@@ -247,37 +247,30 @@ def upgrade():
     )
 
 def downgrade():
-    # テーブルの削除順序を定義
-    tables = [
-        'sales', 'purchases', 'products_for_sale', 'product_specifications',
-        'product_dimensions', 'images', 'products', 'rooms', 'properties',
-        'seller_profiles', 'users', 'companies', 'product_categories'
-    ]
-    
-    # enumの削除順序を定義
-    enums = [
-        'propertytype', 'imagetype', 'companytype', 'usertype',
-        'userrole', 'saletype', 'salestatus', 'consultationtype'
-    ]
+    # Drop tables in correct order
+    op.drop_table('sales')
+    op.drop_table('purchases')
+    op.drop_table('products_for_sale')
+    op.drop_table('product_specifications')
+    op.drop_table('product_dimensions')
+    op.drop_table('images')
+    op.drop_table('products')
+    op.drop_table('rooms')
+    op.drop_table('properties')
+    op.drop_table('seller_profiles')
+    op.drop_table('users')
+    op.drop_table('companies')
+    op.drop_table('product_categories')
 
-    # 各テーブルを個別のトランザクションで削除
-    for table in tables:
-        try:
-            with op.get_context().begin_transaction():
-                op.drop_table(table)
-        except Exception as e:
-            print(f"Warning: Could not drop table {table}: {str(e)}")
-            
-    # 各enumを個別のトランザクションで削除
-    for enum in enums:
-        try:
-            with op.get_context().begin_transaction():
-                op.execute(f'DROP TYPE IF EXISTS {enum}')
-        except Exception as e:
-            print(f"Warning: Could not drop enum {enum}: {str(e)}")
+    # Drop enums
+    op.execute('DROP TYPE IF EXISTS propertytype')
     op.execute('DROP TYPE IF EXISTS imagetype')
     op.execute('DROP TYPE IF EXISTS companytype')
     op.execute('DROP TYPE IF EXISTS usertype')
+    op.execute('DROP TYPE IF EXISTS userrole')
+    op.execute('DROP TYPE IF EXISTS saletype')
+    op.execute('DROP TYPE IF EXISTS salestatus')
+    op.execute('DROP TYPE IF EXISTS consultationtype')
     op.execute('DROP TYPE IF EXISTS userrole')
     op.execute('DROP TYPE IF EXISTS saletype')
     op.execute('DROP TYPE IF EXISTS salestatus')

@@ -1,7 +1,6 @@
-
+from typing import Optional, List, Literal
 from pydantic import BaseModel
-from typing import List, Optional
-from typing_extensions import Literal
+from datetime import datetime
 
 class ImageSchema(BaseModel):
     id: Optional[int] = None
@@ -54,7 +53,7 @@ class PropertySchema(BaseModel):
     user_id: str
     name: str
     description: Optional[str] = None
-    property_type: PropertyType
+    property_type: Literal["house", "apartment", "other"]
     prefecture: str
     layout: Optional[str] = None
     construction_year: Optional[int] = None

@@ -3,13 +3,13 @@ from fastapi import FastAPI, HTTPException, Depends
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from app.database import SessionLocal
-from app.models import Property, Room
-from app.schemas import PropertySchema, RoomSchema, ProductSchema, ImageSchema
+from app.models import Room
+from app.schemas import PropertySchema
 from app.crud import ImageCRUD, ProductCRUD, ProductSpecificationCRUD, ProductDimensionCRUD
+from app.crud.property import PropertyCRUD
 
 app = FastAPI()
 
-# Dependency
 def get_db():
     db = SessionLocal()
     try:
@@ -19,7 +19,7 @@ def get_db():
 
 @app.get("/properties/{property_id}", response_model=PropertySchema)
 async def get_property_details(property_id: int, db: Session = Depends(get_db)):
-    property = db.query(Property).filter(Property.id == property_id).first()
+    property = PropertyCRUD.get(db, property_id)
     if not property:
         raise HTTPException(status_code=404, detail="Property not found")
     return property
@@ -27,25 +27,8 @@ async def get_property_details(property_id: int, db: Session = Depends(get_db)):
 @app.post("/properties", response_model=PropertySchema)
 async def create_property(property_data: PropertySchema, db: Session = Depends(get_db)):
     try:
-        # Create property
-        new_property = Property(
-            user_id=property_data.user_id,
-            name=property_data.name,
-            description=property_data.description,
-            property_type=property_data.property_type,
-            prefecture=property_data.prefecture,
-            layout=property_data.layout,
-            construction_year=property_data.construction_year,
-            construction_month=property_data.construction_month,
-            site_area=property_data.site_area,
-            building_area=property_data.building_area,
-            floor_count=property_data.floor_count,
-            structure=property_data.structure,
-            design_company_id=property_data.design_company_id,
-            construction_company_id=property_data.construction_company_id
-        )
-        db.add(new_property)
-        db.flush()
+        # Create property using PropertyCRUD
+        new_property = PropertyCRUD.create(db, property_data)
 
         # Create property images using ImageCRUD
         if property_data.images:
@@ -64,14 +47,12 @@ async def create_property(property_data: PropertySchema, db: Session = Depends(g
                 db.add(room)
                 db.flush()
 
-                # Create room images using ImageCRUD
                 if room_data.images:
                     for image_data in room_data.images:
                         image_data.property_id = new_property.id
                         image_data.room_id = room.id
                         ImageCRUD.create(db, image_data)
 
-                # Create products with nested specifications, dimensions and images using respective CRUD classes
                 if room_data.products:
                     for product_data in room_data.products:
                         product_data.property_id = new_property.id

@@ -140,7 +140,7 @@ class ProductSchema(BaseModel):
     product_category_id: int
     manufacturer_id: int
     name: str
-    model_number: str
+    product_code: str
     description: Optional[str] = None
     catalog_url: Optional[str] = None
     specifications: Optional[List[ProductSpecificationSchema]] = []

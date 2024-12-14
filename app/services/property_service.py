@@ -1,5 +1,19 @@
-@staticmethod
-    def get_property_details(db: Session, property_id: int):
+
+from typing import Optional
+from sqlalchemy.orm import Session
+from app.crud.property import property as property_crud
+from app.crud.room import room as room_crud
+from app.crud.product import product as product_crud
+from app.crud.product_specification import product_specification as spec_crud
+from app.crud.product_dimension import product_dimension as dim_crud
+from app.crud.image import image as image_crud
+from app.crud.user import user as user_crud
+from app.crud.company import company as company_crud
+from app.schemas import PropertyDetailSchema
+
+class PropertyService:
+    @staticmethod
+    def get_property_details(db: Session, property_id: int) -> Optional[PropertyDetailSchema]:
         # Get property with basic relationships
         property_obj = property_crud.get(db, id=property_id)
         if not property_obj:
@@ -46,7 +60,7 @@
         # Get property images
         property_images = image_crud.get_by_property(db, property_id=property_id)
         
-        return {
+        property_data = {
             **property_obj.__dict__,
             'user': user.__dict__ if user else None,
             'design_company': design_company.__dict__ if design_company else None,
@@ -54,3 +68,7 @@
             'rooms': rooms_data,
             'images': [image.__dict__ for image in property_images]
         }
+        
+        return PropertyDetailSchema(**property_data)
+
+property_service = PropertyService()

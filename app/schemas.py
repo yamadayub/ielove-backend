@@ -1,5 +1,5 @@
 from typing import Optional, List, Literal
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from datetime import datetime
 
 class ImageSchema(BaseModel):

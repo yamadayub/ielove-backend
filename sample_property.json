@@ -24,11 +24,11 @@
   "rooms": [
     {
       "name": "リビングダイニング",
-      "description": "大きな窓のある開放的な空間",
+      "description": "明るく開放的な空間",
       "images": [
         {
           "url": "https://example.com/rooms/living/main.jpg",
-          "description": "リビングダイニングメイン写真",
+          "description": "リビングダイニング全体",
           "image_type": "main"
         }
       ],
@@ -39,7 +39,6 @@
           "name": "フローリング",
           "model_number": "FL-001",
           "description": "オーク材の床材",
-          "catalog_url": "https://example.com/catalog/fl001",
           "specifications": [
             {
               "spec_type": "材質",
@@ -55,8 +54,75 @@
           ],
           "images": [
             {
-              "url": "https://example.com/products/flooring/oak.jpg",
-              "description": "オークフローリング",
+              "url": "https://example.com/products/flooring/main.jpg",
+              "description": "フローリング写真",
+              "image_type": "main"
+            }
+          ]
+        },
+        {
+          "product_category_id": 2,
+          "manufacturer_id": 1,
+          "name": "ダイニングテーブル",
+          "model_number": "DT-001",
+          "description": "オーク材のダイニングテーブル",
+          "specifications": [
+            {
+              "spec_type": "材質",
+              "spec_value": "オーク"
+            }
+          ],
+          "dimensions": [
+            {
+              "dimension_type": "幅",
+              "value": 150,
+              "unit": "cm"
+            }
+          ],
+          "images": [
+            {
+              "url": "https://example.com/products/table/main.jpg",
+              "description": "テーブル写真",
+              "image_type": "main"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "主寝室",
+      "description": "プライバシーに配慮した落ち着いた空間",
+      "images": [
+        {
+          "url": "https://example.com/rooms/bedroom/main.jpg",
+          "description": "主寝室全体",
+          "image_type": "main"
+        }
+      ],
+      "products": [
+        {
+          "product_category_id": 1,
+          "manufacturer_id": 1,
+          "name": "カーペット",
+          "model_number": "CP-001",
+          "description": "高級ウール素材のカーペット",
+          "specifications": [
+            {
+              "spec_type": "材質",
+              "spec_value": "ウール"
+            }
+          ],
+          "dimensions": [
+            {
+              "dimension_type": "厚さ",
+              "value": 15,
+              "unit": "mm"
+            }
+          ],
+          "images": [
+            {
+              "url": "https://example.com/products/carpet/main.jpg",
+              "description": "カーペット写真",
               "image_type": "main"
             }
           ]

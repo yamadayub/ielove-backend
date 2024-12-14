@@ -1,24 +1,29 @@
-
 from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Text, Float, Boolean
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.database import Base
+
 
 class Company(Base):
     __tablename__ = "companies"
 
     id = Column(Integer, primary_key=True)
     name = Column(String, nullable=False)
-    company_type = Column(String, nullable=False)  # manufacturer, design, construction
+    company_type = Column(String,
+                          nullable=False)  # manufacturer, design, construction
     description = Column(Text)
     website = Column(String)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     products = relationship("Product", back_populates="manufacturer")
     designed_properties = relationship(
-        "Property", back_populates="design_company", foreign_keys="Property.design_company_id")
+        "Property",
+        back_populates="design_company",
+        foreign_keys="Property.design_company_id")
     constructed_properties = relationship(
-        "Property", back_populates="construction_company", foreign_keys="Property.construction_company_id")
+        "Property",
+        back_populates="construction_company",
+        foreign_keys="Property.construction_company_id")
 
 
 class Property(Base):
@@ -37,23 +42,33 @@ class Property(Base):
     building_area = Column(Float)
     floor_count = Column(Integer)
     structure = Column(String)
-    design_company_id = Column(Integer, ForeignKey("companies.id"), nullable=True)
-    construction_company_id = Column(Integer, ForeignKey("companies.id"), nullable=True)
+    design_company_id = Column(Integer,
+                               ForeignKey("companies.id"),
+                               nullable=True)
+    construction_company_id = Column(Integer,
+                                     ForeignKey("companies.id"),
+                                     nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     user = relationship("User", back_populates="properties")
-    design_company = relationship(
-        "Company", back_populates="designed_properties", foreign_keys=[design_company_id])
+    design_company = relationship("Company",
+                                  back_populates="designed_properties",
+                                  foreign_keys=[design_company_id])
     construction_company = relationship(
-        "Company", back_populates="constructed_properties", foreign_keys=[construction_company_id])
-    rooms = relationship("Room", back_populates="property",
+        "Company",
+        back_populates="constructed_properties",
+        foreign_keys=[construction_company_id])
+    rooms = relationship("Room",
+                         back_populates="property",
                          cascade="all, delete-orphan")
-    products = relationship(
-        "Product", back_populates="property", cascade="all, delete-orphan")
-    images = relationship("Image", back_populates="property",
+    products = relationship("Product",
+                            back_populates="property",
+                            cascade="all, delete-orphan")
+    images = relationship("Image",
+                          back_populates="property",
                           cascade="all, delete-orphan")
-    products_for_sale = relationship(
-        "ProductForSale", back_populates="property")
+    products_for_sale = relationship("ProductForSale",
+                                     back_populates="property")
 
 
 class Room(Base):
@@ -66,9 +81,11 @@ class Room(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     property = relationship("Property", back_populates="rooms")
-    products = relationship(
-        "Product", back_populates="room", cascade="all, delete-orphan")
-    images = relationship("Image", back_populates="room",
+    products = relationship("Product",
+                            back_populates="room",
+                            cascade="all, delete-orphan")
+    images = relationship("Image",
+                          back_populates="room",
                           cascade="all, delete-orphan")
 
 
@@ -89,10 +106,12 @@ class Product(Base):
     id = Column(Integer, primary_key=True)
     property_id = Column(Integer, ForeignKey("properties.id"), nullable=False)
     room_id = Column(Integer, ForeignKey("rooms.id"), nullable=False)
-    product_category_id = Column(Integer, ForeignKey(
-        "product_categories.id"), nullable=False)
-    manufacturer_id = Column(Integer, ForeignKey(
-        "companies.id"), nullable=False)
+    product_category_id = Column(Integer,
+                                 ForeignKey("product_categories.id"),
+                                 nullable=False)
+    manufacturer_id = Column(Integer,
+                             ForeignKey("companies.id"),
+                             nullable=False)
     name = Column(String, nullable=False)
     product_code = Column(String, nullable=False)
     description = Column(Text)
@@ -101,14 +120,17 @@ class Product(Base):
 
     property = relationship("Property", back_populates="products")
     room = relationship("Room", back_populates="products")
-    product_category = relationship(
-        "ProductCategory", back_populates="products")
+    product_category = relationship("ProductCategory",
+                                    back_populates="products")
     manufacturer = relationship("Company", back_populates="products")
-    specifications = relationship(
-        "ProductSpecification", back_populates="product", cascade="all, delete-orphan")
-    dimensions = relationship(
-        "ProductDimension", back_populates="product", cascade="all, delete-orphan")
-    images = relationship("Image", back_populates="product",
+    specifications = relationship("ProductSpecification",
+                                  back_populates="product",
+                                  cascade="all, delete-orphan")
+    dimensions = relationship("ProductDimension",
+                              back_populates="product",
+                              cascade="all, delete-orphan")
+    images = relationship("Image",
+                          back_populates="product",
                           cascade="all, delete-orphan")
 
 
@@ -119,8 +141,9 @@ class ProductSpecification(Base):
     product_id = Column(Integer, ForeignKey("products.id"), nullable=False)
     spec_type = Column(String, nullable=False)
     spec_value = Column(String, nullable=False)
-    manufacturer_id = Column(Integer, ForeignKey(
-        "companies.id"), nullable=True)
+    manufacturer_id = Column(Integer,
+                             ForeignKey("companies.id"),
+                             nullable=True)
     model_number = Column(String)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
@@ -165,14 +188,16 @@ class User(Base):
     email = Column(String, unique=True, nullable=False)
     name = Column(String, nullable=False)
     user_type = Column(String, nullable=False)  # individual, business
-    role = Column(String, nullable=False, default='buyer')  # buyer, seller, both
+    role = Column(String, nullable=False,
+                  default='buyer')  # buyer, seller, both
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     last_sign_in = Column(DateTime(timezone=True))
 
     properties = relationship("Property", back_populates="user")
-    seller_profile = relationship(
-        "SellerProfile", back_populates="user", uselist=False)
+    seller_profile = relationship("SellerProfile",
+                                  back_populates="user",
+                                  uselist=False)
     purchases = relationship("Purchase", back_populates="buyer")
 
 
@@ -190,16 +215,8 @@ class SellerProfile(Base):
     tax_registration_number = Column(String, nullable=True)
 
     stripe_account_id = Column(String, unique=True, nullable=True)
-    stripe_account_status = Column(
-        String,
-        nullable=True,
-        default='pending'
-    )
-    stripe_account_type = Column(
-        String,
-        nullable=True,
-        default='standard'
-    )
+    stripe_account_status = Column(String, nullable=True, default='pending')
+    stripe_account_type = Column(String, nullable=True, default='standard')
     stripe_onboarding_completed = Column(Boolean, default=False)
     stripe_charges_enabled = Column(Boolean, default=False)
     stripe_payouts_enabled = Column(Boolean, default=False)
@@ -217,14 +234,11 @@ class Purchase(Base):
 
     id = Column(Integer, primary_key=True)
     buyer_id = Column(String, ForeignKey("users.id"), nullable=False)
-    product_for_sale_id = Column(Integer, ForeignKey(
-        "products_for_sale.id"), nullable=False)
+    product_for_sale_id = Column(Integer,
+                                 ForeignKey("products_for_sale.id"),
+                                 nullable=False)
     amount = Column(Integer, nullable=False)
-    status = Column(
-        String,
-        nullable=False,
-        default='pending'
-    )
+    status = Column(String, nullable=False, default='pending')
 
     stripe_payment_intent_id = Column(String, nullable=True, unique=True)
     stripe_payment_status = Column(String, nullable=True)
@@ -240,12 +254,14 @@ class ProductForSale(Base):
     __tablename__ = "products_for_sale"
 
     id = Column(Integer, primary_key=True)
-    seller_id = Column(Integer, ForeignKey(
-        "seller_profiles.id"), nullable=False)
+    seller_id = Column(Integer,
+                       ForeignKey("seller_profiles.id"),
+                       nullable=False)
     name = Column(String, nullable=False)
     description = Column(Text)
     price = Column(Integer, nullable=False)
-    sale_type = Column(String, nullable=False)  # property, room, product, consultation
+    sale_type = Column(String,
+                       nullable=False)  # property, room, product, consultation
     consultation_type = Column(String, nullable=True)  # online, offline
     status = Column(String, default='draft')  # draft, published, sold
 
@@ -270,20 +286,20 @@ class Sale(Base):
     __tablename__ = "sales"
 
     id = Column(Integer, primary_key=True)
-    seller_id = Column(Integer, ForeignKey(
-        "seller_profiles.id"), nullable=False)
-    product_for_sale_id = Column(Integer, ForeignKey(
-        "products_for_sale.id"), nullable=False)
-    purchase_id = Column(Integer, ForeignKey(
-        "purchases.id"), nullable=False, unique=True)
+    seller_id = Column(Integer,
+                       ForeignKey("seller_profiles.id"),
+                       nullable=False)
+    product_for_sale_id = Column(Integer,
+                                 ForeignKey("products_for_sale.id"),
+                                 nullable=False)
+    purchase_id = Column(Integer,
+                         ForeignKey("purchases.id"),
+                         nullable=False,
+                         unique=True)
     amount = Column(Integer, nullable=False)
     platform_fee = Column(Integer, nullable=False)
     seller_amount = Column(Integer, nullable=False)
-    status = Column(
-        String,
-        nullable=False,
-        default='pending'
-    )
+    status = Column(String, nullable=False, default='pending')
 
     stripe_transfer_id = Column(String, nullable=True, unique=True)
     stripe_transfer_status = Column(String, nullable=True)

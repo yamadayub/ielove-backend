@@ -64,6 +64,14 @@ class PropertySchema(BaseModel):
     structure: Optional[str] = None
     design_company_id: Optional[int] = None
     construction_company_id: Optional[int] = None
+
+    class Config:
+        from_attributes = True
+
+class PropertyDetailSchema(PropertySchema):
+    user: Optional[dict] = None
+    design_company: Optional[dict] = None
+    construction_company: Optional[dict] = None
     rooms: Optional[List[RoomSchema]] = []
     images: Optional[List[ImageSchema]] = []
 

@@ -118,32 +118,7 @@ class PropertyService:
                                     dim_crud.create(db, obj_in=ProductDimensionSchema(**dim_dict))
 
             db.refresh(db_property)
-            
-            # Create response data with properly formatted relationships
-            property_data = {
-                "id": db_property.id,
-                "user_id": db_property.user_id,
-                "name": db_property.name,
-                "description": db_property.description,
-                "property_type": db_property.property_type,
-                "prefecture": db_property.prefecture,
-                "layout": db_property.layout,
-                "construction_year": db_property.construction_year,
-                "construction_month": db_property.construction_month,
-                "site_area": db_property.site_area,
-                "building_area": db_property.building_area,
-                "floor_count": db_property.floor_count,
-                "structure": db_property.structure,
-                "design_company_id": db_property.design_company_id,
-                "construction_company_id": db_property.construction_company_id,
-                "user": db_property.user.__dict__ if db_property.user else None,
-                "design_company": db_property.design_company.__dict__ if db_property.design_company else None,
-                "construction_company": db_property.construction_company.__dict__ if db_property.construction_company else None,
-                "rooms": [room.__dict__ for room in db_property.rooms] if db_property.rooms else [],
-                "images": [image.__dict__ for image in db_property.images] if db_property.images else []
-            }
-            
-            return PropertyDetailSchema.model_validate(property_data)
+            return db_property.id
 
         except Exception as e:
             db.rollback()

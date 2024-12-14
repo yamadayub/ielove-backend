@@ -21,7 +21,7 @@ from app.schemas import (
 )
 
 class PropertyService:
-    def get_property_detail(self, db: Session, property_id: int) -> Optional[PropertyDetailSchema]:
+    def get_property_details(self, db: Session, property_id: int) -> Optional[PropertyDetailSchema]:
         property_obj = property_crud.get(db, id=property_id)
         if not property_obj:
             return None

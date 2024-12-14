@@ -2,6 +2,18 @@ from typing import Optional, List, Literal
 from pydantic import BaseModel, ConfigDict
 from datetime import datetime
 
+class UserSchema(BaseModel):
+    id: Optional[str] = None
+    email: str
+    name: str
+    user_type: Literal["individual", "business"]
+    role: str = "buyer"
+    is_active: bool = True
+    last_sign_in: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
 class ProductCategorySchema(BaseModel):
     id: Optional[int] = None
     name: str

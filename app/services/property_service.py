@@ -53,7 +53,7 @@ class PropertyService:
         return PropertyDetailSchema.model_validate(property_data)
 
     @staticmethod
-    def create_property(db: Session, property_data: PropertyCreateSchema) -> PropertyDetailSchema:
+    def create_property(db: Session, property_data: PropertyCreateSchema) -> int:
         try:
             # Create property record
             property_dict = property_data.model_dump(exclude={'rooms', 'images'})

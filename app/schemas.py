@@ -187,6 +187,7 @@ class PropertyDetailSchema(PropertySchema):
 
     model_config = ConfigDict(from_attributes=True, arbitrary_types_allowed=True)
 
+
 class PropertyCreateSchema(BaseModel):
     user_id: str
     name: str
@@ -204,6 +205,7 @@ class PropertyCreateSchema(BaseModel):
     construction_company_id: Optional[int] = None
     rooms: Optional[List[RoomSchema]] = []
     images: Optional[List[ImageSchema]] = []
+
 
 class PropertyResponse(BaseModel):
     id: int

@@ -66,18 +66,22 @@ class PropertyService:
             } if property_obj.construction_company else None,
             "rooms": [{
                 "id": room.id,
+                "property_id": room.property_id,
                 "name": room.name,
                 "description": room.description,
                 "products": [{
                     "id": product.id,
+                    "property_id": product.property_id,
+                    "room_id": product.room_id,
+                    "product_category_id": product.product_category_id,
+                    "manufacturer_id": product.manufacturer_id,
                     "name": product.name,
                     "product_code": product.product_code,
                     "description": product.description,
                     "catalog_url": product.catalog_url,
-                    "product_category_id": product.product_category_id,
-                    "manufacturer_id": product.manufacturer_id,
                     "specifications": [{
                         "id": spec.id,
+                        "product_id": spec.product_id,
                         "spec_type": spec.spec_type,
                         "spec_value": spec.spec_value,
                         "manufacturer_id": spec.manufacturer_id,
@@ -85,6 +89,7 @@ class PropertyService:
                     } for spec in product.specifications],
                     "dimensions": [{
                         "id": dim.id,
+                        "product_id": dim.product_id,
                         "dimension_type": dim.dimension_type,
                         "value": dim.value,
                         "unit": dim.unit
@@ -93,21 +98,30 @@ class PropertyService:
                         "id": image.id,
                         "url": image.url,
                         "description": image.description,
-                        "image_type": image.image_type
+                        "image_type": image.image_type,
+                        "property_id": image.property_id,
+                        "room_id": image.room_id,
+                        "product_id": image.product_id
                     } for image in product.images]
                 } for product in room.products],
                 "images": [{
                     "id": image.id,
                     "url": image.url,
                     "description": image.description,
-                    "image_type": image.image_type
+                    "image_type": image.image_type,
+                    "property_id": image.property_id,
+                    "room_id": image.room_id,
+                    "product_id": image.product_id
                 } for image in room.images]
             } for room in property_obj.rooms] if property_obj.rooms else [],
             "images": [{
                 "id": image.id,
                 "url": image.url,
                 "description": image.description,
-                "image_type": image.image_type
+                "image_type": image.image_type,
+                "property_id": image.property_id,
+                "room_id": image.room_id,
+                "product_id": image.product_id
             } for image in property_obj.images] if property_obj.images else []
         }
         

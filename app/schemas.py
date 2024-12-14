@@ -2,6 +2,80 @@ from typing import Optional, List, Literal
 from pydantic import BaseModel, ConfigDict
 from datetime import datetime
 
+class ProductCategorySchema(BaseModel):
+    id: Optional[int] = None
+    name: str
+    description: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+class PurchaseSchema(BaseModel):
+    id: Optional[int] = None
+    buyer_id: str
+    product_for_sale_id: int
+    amount: int
+    status: str
+    stripe_payment_intent_id: Optional[str] = None
+    stripe_payment_status: Optional[str] = None
+    stripe_transfer_id: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+class SaleSchema(BaseModel):
+    id: Optional[int] = None
+    seller_id: int
+    product_for_sale_id: int
+    purchase_id: int
+    amount: int
+    platform_fee: int
+    seller_amount: int
+    status: str
+    stripe_transfer_id: Optional[str] = None
+    stripe_transfer_status: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+class ProductForSaleSchema(BaseModel):
+    id: Optional[int] = None
+    seller_id: int
+    name: str
+    description: Optional[str] = None
+    price: int
+    sale_type: Literal["property", "room", "product", "consultation"]
+    consultation_type: Optional[str] = None
+    status: str = "draft"
+    property_id: Optional[int] = None
+    room_id: Optional[int] = None
+    product_id: Optional[int] = None
+    is_negotiable: bool = False
+    consultation_minutes: Optional[int] = None
+
+    class Config:
+        from_attributes = True
+
+class SellerProfileSchema(BaseModel):
+    id: Optional[int] = None
+    user_id: str
+    company_name: Optional[str] = None
+    representative_name: Optional[str] = None
+    postal_code: Optional[str] = None
+    address: Optional[str] = None
+    phone_number: Optional[str] = None
+    business_registration_number: Optional[str] = None
+    tax_registration_number: Optional[str] = None
+    stripe_account_id: Optional[str] = None
+    stripe_account_status: Optional[str] = None
+    stripe_account_type: Optional[str] = None
+    stripe_onboarding_completed: bool = False
+    stripe_charges_enabled: bool = False
+    stripe_payouts_enabled: bool = False
+
+    class Config:
+        from_attributes = True
+
 class CompanySchema(BaseModel):
     id: Optional[int] = None
     name: str

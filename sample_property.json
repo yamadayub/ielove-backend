@@ -1,32 +1,34 @@
 
 {
   "user_id": "user123",
-  "name": "モダンな新築一戸建て",
-  "description": "自然光が差し込む明るいリビングが特徴の住宅です",
+  "name": "モダンな一戸建て",
+  "description": "緑豊かな環境に位置する現代的な一戸建て住宅",
   "property_type": "house",
   "prefecture": "東京都",
-  "layout": "3LDK",
+  "layout": "4LDK",
   "construction_year": 2023,
   "construction_month": 6,
   "site_area": 120.5,
   "building_area": 85.3,
   "floor_count": 2,
   "structure": "木造",
+  "design_company_id": 1,
+  "construction_company_id": 2,
   "images": [
     {
-      "url": "https://example.com/property1.jpg",
-      "description": "外観",
+      "url": "https://example.com/property/exterior.jpg",
+      "description": "建物外観メイン写真",
       "image_type": "main"
     }
   ],
   "rooms": [
     {
-      "name": "リビング",
+      "name": "リビングダイニング",
       "description": "大きな窓のある開放的な空間",
       "images": [
         {
-          "url": "https://example.com/living1.jpg",
-          "description": "リビングルーム全体",
+          "url": "https://example.com/rooms/living/main.jpg",
+          "description": "リビングダイニングメイン写真",
           "image_type": "main"
         }
       ],
@@ -47,8 +49,15 @@
           "dimensions": [
             {
               "dimension_type": "厚さ",
-              "value": 12.0,
+              "value": 15,
               "unit": "mm"
+            }
+          ],
+          "images": [
+            {
+              "url": "https://example.com/products/flooring/oak.jpg",
+              "description": "オークフローリング",
+              "image_type": "main"
             }
           ]
         }

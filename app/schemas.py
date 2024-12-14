@@ -2,6 +2,7 @@ from typing import Optional, List, Literal
 from pydantic import BaseModel, ConfigDict
 from datetime import datetime
 
+
 class UserSchema(BaseModel):
     id: Optional[str] = None
     email: str
@@ -14,6 +15,7 @@ class UserSchema(BaseModel):
     class Config:
         from_attributes = True
 
+
 class ProductCategorySchema(BaseModel):
     id: Optional[int] = None
     name: str
@@ -21,6 +23,7 @@ class ProductCategorySchema(BaseModel):
 
     class Config:
         from_attributes = True
+
 
 class PurchaseSchema(BaseModel):
     id: Optional[int] = None
@@ -34,6 +37,7 @@ class PurchaseSchema(BaseModel):
 
     class Config:
         from_attributes = True
+
 
 class SaleSchema(BaseModel):
     id: Optional[int] = None
@@ -49,6 +53,7 @@ class SaleSchema(BaseModel):
 
     class Config:
         from_attributes = True
+
 
 class ProductForSaleSchema(BaseModel):
     id: Optional[int] = None
@@ -67,6 +72,7 @@ class ProductForSaleSchema(BaseModel):
 
     class Config:
         from_attributes = True
+
 
 class SellerProfileSchema(BaseModel):
     id: Optional[int] = None
@@ -88,6 +94,7 @@ class SellerProfileSchema(BaseModel):
     class Config:
         from_attributes = True
 
+
 class CompanySchema(BaseModel):
     id: Optional[int] = None
     name: str
@@ -98,6 +105,7 @@ class CompanySchema(BaseModel):
     class Config:
         from_attributes = True
 
+
 class ImageSchema(BaseModel):
     id: Optional[int] = None
     url: str
@@ -107,6 +115,7 @@ class ImageSchema(BaseModel):
     room_id: Optional[int] = None
     product_id: Optional[int] = None
 
+
 class ProductSpecificationSchema(BaseModel):
     id: Optional[int] = None
     product_id: Optional[int] = None
@@ -115,12 +124,14 @@ class ProductSpecificationSchema(BaseModel):
     manufacturer_id: Optional[int] = None
     model_number: Optional[str] = None
 
+
 class ProductDimensionSchema(BaseModel):
     id: Optional[int] = None
     product_id: Optional[int] = None
     dimension_type: str
     value: float
     unit: str
+
 
 class ProductSchema(BaseModel):
     id: Optional[int] = None
@@ -136,6 +147,7 @@ class ProductSchema(BaseModel):
     dimensions: Optional[List[ProductDimensionSchema]] = []
     images: Optional[List[ImageSchema]] = []
 
+
 class RoomSchema(BaseModel):
     id: Optional[int] = None
     property_id: Optional[int] = None
@@ -143,6 +155,7 @@ class RoomSchema(BaseModel):
     description: Optional[str] = None
     products: Optional[List[ProductSchema]] = []
     images: Optional[List[ImageSchema]] = []
+
 
 class PropertySchema(BaseModel):
     id: Optional[int] = None
@@ -164,10 +177,41 @@ class PropertySchema(BaseModel):
     class Config:
         from_attributes = True
 
+
 class PropertyDetailSchema(PropertySchema):
     user: Optional[dict] = None
     design_company: Optional[dict] = None
     construction_company: Optional[dict] = None
+    rooms: Optional[List[RoomSchema]] = []
+    images: Optional[List[ImageSchema]] = []
+
+    class Config(PropertySchema.Config):
+        from_attributes = True
+
+class PropertyCreateSchema(BaseModel):
+    user_id: str
+    name: str
+    description: Optional[str] = None
+    property_type: Literal["house", "apartment", "other"]
+    prefecture: str
+    layout: Optional[str] = None
+    construction_year: Optional[int] = None
+    construction_month: Optional[int] = None
+    site_area: Optional[float] = None
+    building_area: Optional[float] = None
+    floor_count: Optional[int] = None
+    structure: Optional[str] = None
+    design_company_id: Optional[int] = None
+    construction_company_id: Optional[int] = None
+    rooms: Optional[List[RoomSchema]] = []
+    images: Optional[List[ImageSchema]] = []
+
+class PropertyResponse(BaseModel):
+    id: int
+    name: str
+    description: Optional[str] = None
+    property_type: str
+    prefecture: str
     rooms: Optional[List[RoomSchema]] = []
     images: Optional[List[ImageSchema]] = []
 

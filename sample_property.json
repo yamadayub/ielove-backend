@@ -37,7 +37,7 @@
           "product_category_id": 1,
           "manufacturer_id": 1,
           "name": "フローリング",
-          "model_number": "FL-001",
+          "product_code": "FL-001",
           "description": "オーク材の床材",
           "specifications": [
             {
@@ -64,7 +64,7 @@
           "product_category_id": 2,
           "manufacturer_id": 1,
           "name": "ダイニングテーブル",
-          "model_number": "DT-001",
+          "product_code": "DT-001",
           "description": "オーク材のダイニングテーブル",
           "specifications": [
             {
@@ -104,7 +104,7 @@
           "product_category_id": 1,
           "manufacturer_id": 1,
           "name": "カーペット",
-          "model_number": "CP-001",
+          "product_code": "CP-001",
           "description": "高級ウール素材のカーペット",
           "specifications": [
             {

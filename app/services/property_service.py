@@ -9,21 +9,27 @@ from app.crud.product_dimension import product_dimension as dim_crud
 from app.crud.image import image as image_crud
 from app.crud.user import user as user_crud
 from app.crud.company import company as company_crud
-from app.schemas import PropertyDetailSchema
+from app.schemas import (
+    PropertyDetailSchema,
+    PropertyCreateSchema,
+    PropertySchema,
+    RoomSchema,
+    ProductSchema,
+    ImageSchema,
+    ProductSpecificationSchema,
+    ProductDimensionSchema
+)
 
 class PropertyService:
-    @staticmethod
-    def get_property_details(db: Session, property_id: int) -> Optional[PropertyDetailSchema]:
-        # Get property with basic relationships
+    def get_property_detail(self, db: Session, property_id: int) -> Optional[PropertyDetailSchema]:
         property_obj = property_crud.get(db, id=property_id)
         if not property_obj:
             return None
-
-        # Get user and companies
+            
         user = user_crud.get(db, id=property_obj.user_id)
         design_company = company_crud.get(db, id=property_obj.design_company_id) if property_obj.design_company_id else None
         construction_company = company_crud.get(db, id=property_obj.construction_company_id) if property_obj.construction_company_id else None
-
+        
         # Get rooms with their products
         rooms = room_crud.get_by_property(db, property_id=property_id)
         rooms_data = []
@@ -71,7 +77,7 @@ class PropertyService:
         
         return PropertyDetailSchema(**property_data)
 
-@staticmethod
+    @staticmethod
     def create_property(db: Session, property_data: PropertyCreateSchema) -> PropertyDetailSchema:
         # Create property
         property_dict = property_data.dict(exclude={'rooms', 'images'})

@@ -43,11 +43,72 @@ class PropertyService:
             "structure": property_obj.structure,
             "design_company_id": property_obj.design_company_id,
             "construction_company_id": property_obj.construction_company_id,
-            "user": property_obj.user.__dict__ if property_obj.user else None,
-            "design_company": property_obj.design_company.__dict__ if property_obj.design_company else None,
-            "construction_company": property_obj.construction_company.__dict__ if property_obj.construction_company else None,
-            "rooms": [room.__dict__ for room in property_obj.rooms] if property_obj.rooms else [],
-            "images": [image.__dict__ for image in property_obj.images] if property_obj.images else []
+            "user": {
+                "id": property_obj.user.id,
+                "email": property_obj.user.email,
+                "name": property_obj.user.name,
+                "user_type": property_obj.user.user_type,
+                "role": property_obj.user.role
+            } if property_obj.user else None,
+            "design_company": {
+                "id": property_obj.design_company.id,
+                "name": property_obj.design_company.name,
+                "company_type": property_obj.design_company.company_type,
+                "description": property_obj.design_company.description,
+                "website": property_obj.design_company.website
+            } if property_obj.design_company else None,
+            "construction_company": {
+                "id": property_obj.construction_company.id,
+                "name": property_obj.construction_company.name,
+                "company_type": property_obj.construction_company.company_type,
+                "description": property_obj.construction_company.description,
+                "website": property_obj.construction_company.website
+            } if property_obj.construction_company else None,
+            "rooms": [{
+                "id": room.id,
+                "name": room.name,
+                "description": room.description,
+                "products": [{
+                    "id": product.id,
+                    "name": product.name,
+                    "product_code": product.product_code,
+                    "description": product.description,
+                    "catalog_url": product.catalog_url,
+                    "product_category_id": product.product_category_id,
+                    "manufacturer_id": product.manufacturer_id,
+                    "specifications": [{
+                        "id": spec.id,
+                        "spec_type": spec.spec_type,
+                        "spec_value": spec.spec_value,
+                        "manufacturer_id": spec.manufacturer_id,
+                        "model_number": spec.model_number
+                    } for spec in product.specifications],
+                    "dimensions": [{
+                        "id": dim.id,
+                        "dimension_type": dim.dimension_type,
+                        "value": dim.value,
+                        "unit": dim.unit
+                    } for dim in product.dimensions],
+                    "images": [{
+                        "id": image.id,
+                        "url": image.url,
+                        "description": image.description,
+                        "image_type": image.image_type
+                    } for image in product.images]
+                } for product in room.products],
+                "images": [{
+                    "id": image.id,
+                    "url": image.url,
+                    "description": image.description,
+                    "image_type": image.image_type
+                } for image in room.images]
+            } for room in property_obj.rooms] if property_obj.rooms else [],
+            "images": [{
+                "id": image.id,
+                "url": image.url,
+                "description": image.description,
+                "image_type": image.image_type
+            } for image in property_obj.images] if property_obj.images else []
         }
         
         return PropertyDetailSchema.model_validate(property_data)

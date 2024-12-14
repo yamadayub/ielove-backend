@@ -1,0 +1,76 @@
+-----> Building on the Heroku-24 stack
+-----> Determining which buildpack to use for this app
+-----> Python app detected
+-----> No Python version was specified. Using the buildpack default: Python 3.13
+       To use a different version, see: https://devcenter.heroku.com/articles/python-runtimes
+-----> Installing Python 3.13.1
+-----> Installing pip 24.3.1
+-----> Installing dependencies using 'pip install -r requirements.txt'
+       Collecting fastapi==0.109.2 (from -r requirements.txt (line 2))
+         Downloading fastapi-0.109.2-py3-none-any.whl.metadata (25 kB)
+       Collecting uvicorn==0.27.1 (from -r requirements.txt (line 3))
+         Downloading uvicorn-0.27.1-py3-none-any.whl.metadata (6.3 kB)
+       Collecting sqlalchemy==2.0.25 (from -r requirements.txt (line 4))
+         Downloading SQLAlchemy-2.0.25-py3-none-any.whl.metadata (9.6 kB)
+       Collecting psycopg2-binary==2.9.9 (from -r requirements.txt (line 5))
+         Downloading psycopg2-binary-2.9.9.tar.gz (384 kB)
+         Installing build dependencies: started
+         Installing build dependencies: finished with status 'done'
+         Getting requirements to build wheel: started
+         Getting requirements to build wheel: finished with status 'done'
+         Preparing metadata (pyproject.toml): started
+         Preparing metadata (pyproject.toml): finished with status 'done'
+       Collecting python-dotenv==1.0.1 (from -r requirements.txt (line 6))
+         Downloading python_dotenv-1.0.1-py3-none-any.whl.metadata (23 kB)
+       Collecting pydantic==2.6.1 (from -r requirements.txt (line 7))
+         Downloading pydantic-2.6.1-py3-none-any.whl.metadata (83 kB)
+       Collecting pydantic-settings==2.1.0 (from -r requirements.txt (line 8))
+         Downloading pydantic_settings-2.1.0-py3-none-any.whl.metadata (2.9 kB)
+       Collecting alembic==1.13.1 (from -r requirements.txt (line 9))
+         Downloading alembic-1.13.1-py3-none-any.whl.metadata (7.4 kB)
+       Collecting starlette<0.37.0,>=0.36.3 (from fastapi==0.109.2->-r requirements.txt (line 2))
+         Downloading starlette-0.36.3-py3-none-any.whl.metadata (5.9 kB)
+       Collecting typing-extensions>=4.8.0 (from fastapi==0.109.2->-r requirements.txt (line 2))
+         Downloading typing_extensions-4.12.2-py3-none-any.whl.metadata (3.0 kB)
+       Collecting click>=7.0 (from uvicorn==0.27.1->-r requirements.txt (line 3))
+         Downloading click-8.1.7-py3-none-any.whl.metadata (3.0 kB)
+       Collecting h11>=0.8 (from uvicorn==0.27.1->-r requirements.txt (line 3))
+         Downloading h11-0.14.0-py3-none-any.whl.metadata (8.2 kB)
+       Collecting greenlet!=0.4.17 (from sqlalchemy==2.0.25->-r requirements.txt (line 4))
+         Downloading greenlet-3.1.1-cp313-cp313-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl.metadata (3.8 kB)
+       Collecting annotated-types>=0.4.0 (from pydantic==2.6.1->-r requirements.txt (line 7))
+         Downloading annotated_types-0.7.0-py3-none-any.whl.metadata (15 kB)
+       Collecting pydantic-core==2.16.2 (from pydantic==2.6.1->-r requirements.txt (line 7))
+         Downloading pydantic_core-2.16.2.tar.gz (368 kB)
+         Installing build dependencies: started
+         Installing build dependencies: finished with status 'done'
+         Getting requirements to build wheel: started
+         Getting requirements to build wheel: finished with status 'done'
+         Preparing metadata (pyproject.toml): started
+         Preparing metadata (pyproject.toml): finished with status 'error'
+         error: subprocess-exited-with-error
+         
+         × Preparing metadata (pyproject.toml) did not run successfully.
+         │ exit code: 1
+         ╰─> [6 lines of output]
+             Checking for Rust toolchain....
+             
+             Cargo, the Rust package manager, is not installed or is not on PATH.
+             This package requires Rust and Cargo to compile extensions. Install it through
+             the system's package manager or via https://rustup.rs/
+             
+             [end of output]
+         
+         note: This error originates from a subprocess, and is likely not a problem with pip.
+       error: metadata-generation-failed
+       
+       × Encountered error while generating package metadata.
+       ╰─> See above for output.
+       
+       note: This is an issue with the package mentioned above, not pip.
+       hint: See above for details.
+ !     Error: Unable to install dependencies using pip.
+ !     
+ !     See the log output above for more information.
+ !     Push rejected, failed to compile Python app.
+ !     Push failed

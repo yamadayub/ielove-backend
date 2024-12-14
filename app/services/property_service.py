@@ -66,16 +66,7 @@ class PropertyService:
         # Get property images
         property_images = image_crud.get_by_property(db, property_id=property_id)
         
-        property_data = {
-            **property_obj.__dict__,
-            'user': user.__dict__ if user else None,
-            'design_company': design_company.__dict__ if design_company else None,
-            'construction_company': construction_company.__dict__ if construction_company else None,
-            'rooms': rooms_data,
-            'images': [image.__dict__ for image in property_images]
-        }
-        
-        return PropertyDetailSchema(**property_data)
+        return PropertyDetailSchema.model_validate(property_obj)
 
     @staticmethod
     def create_property(db: Session, property_data: PropertyCreateSchema) -> PropertyDetailSchema:

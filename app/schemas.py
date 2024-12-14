@@ -185,8 +185,7 @@ class PropertyDetailSchema(PropertySchema):
     rooms: Optional[List[RoomSchema]] = []
     images: Optional[List[ImageSchema]] = []
 
-    class Config(PropertySchema.Config):
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True, arbitrary_types_allowed=True)
 
 class PropertyCreateSchema(BaseModel):
     user_id: str

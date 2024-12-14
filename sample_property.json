@@ -12,8 +12,8 @@
   "building_area": 85.3,
   "floor_count": 2,
   "structure": "木造",
-  "design_company_id": null,
-  "construction_company_id": null,
+  "design_company_id": 1,
+  "construction_company_id": 1,
   "images": [
     {
       "url": "https://example.com/property/exterior.jpg",

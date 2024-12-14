@@ -26,47 +26,31 @@ class PropertyService:
         if not property_obj:
             return None
             
-        user = user_crud.get(db, id=property_obj.user_id)
-        design_company = company_crud.get(db, id=property_obj.design_company_id) if property_obj.design_company_id else None
-        construction_company = company_crud.get(db, id=property_obj.construction_company_id) if property_obj.construction_company_id else None
+        # Create a dictionary with property data and relationships
+        property_data = {
+            "id": property_obj.id,
+            "user_id": property_obj.user_id,
+            "name": property_obj.name,
+            "description": property_obj.description,
+            "property_type": property_obj.property_type,
+            "prefecture": property_obj.prefecture,
+            "layout": property_obj.layout,
+            "construction_year": property_obj.construction_year,
+            "construction_month": property_obj.construction_month,
+            "site_area": property_obj.site_area,
+            "building_area": property_obj.building_area,
+            "floor_count": property_obj.floor_count,
+            "structure": property_obj.structure,
+            "design_company_id": property_obj.design_company_id,
+            "construction_company_id": property_obj.construction_company_id,
+            "user": property_obj.user.__dict__ if property_obj.user else None,
+            "design_company": property_obj.design_company.__dict__ if property_obj.design_company else None,
+            "construction_company": property_obj.construction_company.__dict__ if property_obj.construction_company else None,
+            "rooms": [room.__dict__ for room in property_obj.rooms] if property_obj.rooms else [],
+            "images": [image.__dict__ for image in property_obj.images] if property_obj.images else []
+        }
         
-        # Get rooms with their products
-        rooms = room_crud.get_by_property(db, property_id=property_id)
-        rooms_data = []
-        
-        for room in rooms:
-            # Get room images
-            room_images = image_crud.get_by_room(db, room_id=room.id)
-            
-            # Get products for this room
-            room_products = product_crud.get_multi_by_room(db, room_id=room.id)
-            products_data = []
-            
-            for product in room_products:
-                # Get product details
-                specs = spec_crud.get_by_product(db, product_id=product.id)
-                dims = dim_crud.get_by_product(db, product_id=product.id)
-                product_images = image_crud.get_by_product(db, product_id=product.id)
-                
-                product_data = {
-                    **product.__dict__,
-                    'specifications': [spec.__dict__ for spec in specs],
-                    'dimensions': [dim.__dict__ for dim in dims],
-                    'images': [image.__dict__ for image in product_images]
-                }
-                products_data.append(product_data)
-            
-            room_data = {
-                **room.__dict__,
-                'products': products_data,
-                'images': [image.__dict__ for image in room_images]
-            }
-            rooms_data.append(room_data)
-        
-        # Get property images
-        property_images = image_crud.get_by_property(db, property_id=property_id)
-        
-        return PropertyDetailSchema.model_validate(property_obj)
+        return PropertyDetailSchema.model_validate(property_data)
 
     @staticmethod
     def create_property(db: Session, property_data: PropertyCreateSchema) -> PropertyDetailSchema:
@@ -134,7 +118,32 @@ class PropertyService:
                                     dim_crud.create(db, obj_in=ProductDimensionSchema(**dim_dict))
 
             db.refresh(db_property)
-            return PropertyDetailSchema.model_validate(db_property)
+            
+            # Create response data with properly formatted relationships
+            property_data = {
+                "id": db_property.id,
+                "user_id": db_property.user_id,
+                "name": db_property.name,
+                "description": db_property.description,
+                "property_type": db_property.property_type,
+                "prefecture": db_property.prefecture,
+                "layout": db_property.layout,
+                "construction_year": db_property.construction_year,
+                "construction_month": db_property.construction_month,
+                "site_area": db_property.site_area,
+                "building_area": db_property.building_area,
+                "floor_count": db_property.floor_count,
+                "structure": db_property.structure,
+                "design_company_id": db_property.design_company_id,
+                "construction_company_id": db_property.construction_company_id,
+                "user": db_property.user.__dict__ if db_property.user else None,
+                "design_company": db_property.design_company.__dict__ if db_property.design_company else None,
+                "construction_company": db_property.construction_company.__dict__ if db_property.construction_company else None,
+                "rooms": [room.__dict__ for room in db_property.rooms] if db_property.rooms else [],
+                "images": [image.__dict__ for image in db_property.images] if db_property.images else []
+            }
+            
+            return PropertyDetailSchema.model_validate(property_data)
 
         except Exception as e:
             db.rollback()

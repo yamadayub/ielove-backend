@@ -8,9 +8,14 @@ from .config import get_settings
 
 settings = get_settings()
 
+# データベースURLの調整（Heroku対応）
+database_url = settings.sqlalchemy_database_url
+if database_url.startswith('postgres://'):
+    database_url = database_url.replace('postgres://', 'postgresql://')
+
 # エンジンの作成
 engine = create_engine(
-    settings.sqlalchemy_database_url,
+    database_url,
     pool_pre_ping=True,  # コネクションプールのヘルスチェック
     pool_size=5,  # コネクションプールのサイズ
     max_overflow=10,  # 最大オーバーフロー接続数

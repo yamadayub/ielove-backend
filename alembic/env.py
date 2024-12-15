@@ -9,7 +9,9 @@ from app.models import *  # This imports all models
 from app.config import get_settings
 
 # このパスの追加はモジュールのインポートのために必要
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+current_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if current_path not in sys.path:
+    sys.path.insert(0, current_path)
 
 # Alembic Configオブジェクトを取得
 config = context.config

@@ -10,7 +10,8 @@ from app.schemas import (
     PropertyCreateSchema,
     PropertyCreateBaseSchema,
     PropertySchema,
-    RoomSchema
+    RoomSchema,
+    ProductCreate
 )
 from app.services.image_service import image_service
 from typing import Optional

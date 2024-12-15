@@ -185,7 +185,8 @@ class PropertyDetailSchema(PropertySchema):
     rooms: Optional[List[RoomSchema]] = []
     images: Optional[List[ImageSchema]] = []
 
-    model_config = ConfigDict(from_attributes=True, arbitrary_types_allowed=True)
+    model_config = ConfigDict(from_attributes=True,
+                              arbitrary_types_allowed=True)
 
 
 class PropertyCreateSchema(BaseModel):
@@ -218,3 +219,31 @@ class PropertyResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class ImageBase(BaseModel):
+    url: str
+    description: Optional[str] = None
+    image_type: str
+    property_id: Optional[int] = None
+    room_id: Optional[int] = None
+    product_id: Optional[int] = None
+    s3_key: str
+
+
+class ImageCreate(ImageBase):
+    pass
+
+
+class ImageSchema(ImageBase):
+    id: str
+    created_at: datetime
+
+    class Config:
+        orm_mode = True
+
+
+class PreSignedUrlResponse(BaseModel):
+    upload_url: str
+    image_id: str
+    image_url: str

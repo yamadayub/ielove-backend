@@ -3,11 +3,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from app.database import SessionLocal
 from app.services.property_service import property_service
+from app.services.room_service import room_service
 from app.schemas import (
     PropertyDetailSchema,
     PropertyCreateSchema,
     PropertyCreateBaseSchema,
-    PropertySchema
+    PropertySchema,
+    RoomSchema
 )
 from app.services.image_service import image_service
 from typing import Optional
@@ -48,20 +50,17 @@ def get_property_details(
     if not details:
         raise HTTPException(status_code=404, detail="Property not found")
 
-@app.post("/api/properties/base", response_model=PropertySchema)
+@app.post("/api/properties", response_model=PropertySchema)
 def create_property_base(property_data: PropertyCreateBaseSchema,
                         db: Session = Depends(get_db)):
     """物件の基本情報のみを作成する"""
-    return property_service.create_property_base(db, property_data)
+    return property_service.create_property(db, property_data)
 
 
-    return details
-
-
-@app.post("/api/properties", response_model=int)
+@app.post("/api/properties/whole", response_model=int)
 def create_property(property_data: PropertyCreateSchema,
                     db: Session = Depends(get_db)):
-    return property_service.create_property(db, property_data)
+    return property_service.create_property_whole(db, property_data)
 
 
 @app.post("/api/images/presigned-url")
@@ -77,6 +76,16 @@ def get_presigned_url(file_name: str, content_type: str, db: Session = Depends(g
 @app.delete("/api/images/{image_id}")
 def delete_image(image_id: str, db: Session = Depends(get_db)):
     return image_service.delete_image(db, image_id)
+
+@app.post("/api/properties/{property_id}/rooms", response_model=RoomSchema)
+def create_room(
+    property_id: int,
+    room_data: RoomSchema,
+    db: Session = Depends(get_db)
+):
+    """物件に紐づく部屋情報を作成する"""
+    room_data.property_id = property_id
+    return room_service.create_room(db, room_data)
 
 
 @app.post("/api/images/{image_id}/complete")

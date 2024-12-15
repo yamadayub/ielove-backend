@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from app.database import SessionLocal
 from app.services.property_service import property_service
-from app.schemas import PropertyDetailSchema, PropertyCreateSchema
+from app.schemas import PropertyDetailSchema, PropertyCreateSchema, PropertyCreateBaseSchema
 from app.services.image_service import image_service
 from typing import Optional
 from dotenv import load_dotenv
@@ -42,6 +42,14 @@ def get_property_details(
     details = property_service.get_property_details(db, property_id)
     if not details:
         raise HTTPException(status_code=404, detail="Property not found")
+
+@app.post("/api/properties/base", response_model=PropertySchema)
+def create_property_base(property_data: PropertyCreateBaseSchema,
+                        db: Session = Depends(get_db)):
+    """物件の基本情報のみを作成する"""
+    return property_service.create_property_base(db, property_data)
+
+
     return details
 
 

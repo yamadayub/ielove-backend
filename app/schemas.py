@@ -189,6 +189,22 @@ class PropertyDetailSchema(PropertySchema):
                               arbitrary_types_allowed=True)
 
 
+class PropertyCreateBaseSchema(BaseModel):
+    user_id: str
+    name: str
+    description: Optional[str] = None
+    property_type: Literal["house", "apartment", "other"]
+    prefecture: str
+    layout: Optional[str] = None
+    construction_year: Optional[int] = None
+    construction_month: Optional[int] = None
+    site_area: Optional[float] = None
+    building_area: Optional[float] = None
+    floor_count: Optional[int] = None
+    structure: Optional[str] = None
+    design_company_id: Optional[int] = None
+    construction_company_id: Optional[int] = None
+
 class PropertyCreateSchema(BaseModel):
     user_id: str
     name: str

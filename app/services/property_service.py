@@ -12,6 +12,13 @@ from app.crud.company import company as company_crud
 from app.schemas import (
     PropertyDetailSchema,
     PropertyCreateSchema,
+
+    def create_property_base(self, db: Session, property_data: PropertyCreateBaseSchema) -> Property:
+        """物件の基本情報のみを作成する"""
+        return property_crud.create(db, obj_in=property_data)
+
+
+    PropertyCreateBaseSchema,
     PropertySchema,
     RoomSchema,
     ProductSchema,

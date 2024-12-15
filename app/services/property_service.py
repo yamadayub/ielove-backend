@@ -1,6 +1,7 @@
 
 from typing import Optional
 from sqlalchemy.orm import Session
+from app.models import Property
 from app.crud.property import property as property_crud
 from app.crud.room import room as room_crud
 from app.crud.product import product as product_crud

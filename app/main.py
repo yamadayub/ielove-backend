@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from app.database import SessionLocal
 from app.services.property_service import property_service
 from app.services.room_service import room_service
+from app.services.product_service import product_service
 from app.schemas import (
     PropertyDetailSchema,
     PropertyCreateSchema,
@@ -87,6 +88,17 @@ def create_room(
     room_data.property_id = property_id
     return room_service.create_room(db, room_data)
 
+
+@app.post("/api/images/{image_id}/complete")
+@app.post("/api/rooms/{room_id}/products", response_model=ProductCreate)
+def create_product(
+    room_id: int,
+    product_data: ProductCreate,
+    db: Session = Depends(get_db)
+):
+    """部屋に紐づく製品情報を作成する"""
+    product_data.room_id = room_id
+    return product_service.create_product(db, product_data)
 
 @app.post("/api/images/{image_id}/complete")
 def complete_image_upload(image_id: str,

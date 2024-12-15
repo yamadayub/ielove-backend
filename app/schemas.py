@@ -242,3 +242,18 @@ class PreSignedUrlResponse(BaseModel):
     upload_url: str
     image_id: str
     image_url: str
+
+
+class ProductBase(BaseModel):
+    id: Optional[int] = None
+    property_id: Optional[int] = None
+    room_id: Optional[int] = None
+    product_category_id: int
+    manufacturer_id: int
+    name: str
+    product_code: str
+    description: Optional[str] = None
+    catalog_url: Optional[str] = None
+
+class ProductCreate(ProductBase):
+    room_id: int

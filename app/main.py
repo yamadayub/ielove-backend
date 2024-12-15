@@ -14,7 +14,8 @@ from app.schemas import (
     PropertySchema,
     RoomSchema,
     ProductCreate,
-    ProductSpecificationSchema
+    ProductSpecificationSchema,
+    ProductDimensionSchema
 )
 from app.services.image_service import image_service
 from typing import Optional

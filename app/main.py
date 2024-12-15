@@ -3,7 +3,12 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from app.database import SessionLocal
 from app.services.property_service import property_service
-from app.schemas import PropertyDetailSchema, PropertyCreateSchema, PropertyCreateBaseSchema
+from app.schemas import (
+    PropertyDetailSchema,
+    PropertyCreateSchema,
+    PropertyCreateBaseSchema,
+    PropertySchema
+)
 from app.services.image_service import image_service
 from typing import Optional
 from dotenv import load_dotenv

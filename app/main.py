@@ -6,6 +6,7 @@ from app.services.property_service import property_service
 from app.services.room_service import room_service
 from app.services.product_service import product_service
 from app.services.product_specification_service import product_specification_service
+from app.services.product_dimension_service import product_dimension_service
 from app.schemas import (
     PropertyDetailSchema,
     PropertyCreateSchema,
@@ -119,3 +120,13 @@ def create_product_specification(
     """製品に紐づく仕様情報を作成する"""
     spec_data.product_id = product_id
     return product_specification_service.create_product_specification(db, spec_data)
+
+@app.post("/api/products/{product_id}/dimensions", response_model=ProductDimensionSchema)
+def create_product_dimension(
+    product_id: int,
+    dimension_data: ProductDimensionSchema,
+    db: Session = Depends(get_db)
+):
+    """製品に紐づく寸法情報を作成する"""
+    dimension_data.product_id = product_id
+    return product_dimension_service.create_product_dimension(db, dimension_data)

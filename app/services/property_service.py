@@ -23,7 +23,7 @@ from app.schemas import (
 )
 
 class PropertyService:
-    def create_property_base(self, db: Session, property_data: PropertyCreateBaseSchema) -> Property:
+    def create_property(self, db: Session, property_data: PropertyCreateBaseSchema) -> Property:
         """物件の基本情報のみを作成する"""
         return property_crud.create(db, obj_in=property_data)
 
@@ -134,7 +134,7 @@ class PropertyService:
         return PropertyDetailSchema.model_validate(property_data)
 
     @staticmethod
-    def create_property(db: Session, property_data: PropertyCreateSchema) -> int:
+    def create_property_whole(db: Session, property_data: PropertyCreateSchema) -> int:
         try:
             # Create property record
             property_dict = property_data.model_dump(exclude={'rooms', 'images'})

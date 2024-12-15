@@ -1,0 +1,49 @@
+INFO:     172.31.196.71:42248 - "POST /api/properties/5/rooms HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "/home/runner/ielove-backend/.pythonlibs/lib/python3.12/site-packages/uvicorn/protocols/http/h11_impl.py", line 412, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/ielove-backend/.pythonlibs/lib/python3.12/site-packages/uvicorn/middleware/proxy_headers.py", line 84, in __call__
+    return await self.app(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/ielove-backend/.pythonlibs/lib/python3.12/site-packages/fastapi/applications.py", line 1054, in __call__
+    await super().__call__(scope, receive, send)
+  File "/home/runner/ielove-backend/.pythonlibs/lib/python3.12/site-packages/starlette/applications.py", line 123, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/home/runner/ielove-backend/.pythonlibs/lib/python3.12/site-packages/starlette/middleware/errors.py", line 186, in __call__
+    raise exc
+  File "/home/runner/ielove-backend/.pythonlibs/lib/python3.12/site-packages/starlette/middleware/errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "/home/runner/ielove-backend/.pythonlibs/lib/python3.12/site-packages/starlette/middleware/cors.py", line 91, in __call__
+    await self.simple_response(scope, receive, send, request_headers=headers)
+  File "/home/runner/ielove-backend/.pythonlibs/lib/python3.12/site-packages/starlette/middleware/cors.py", line 146, in simple_response
+    await self.app(scope, receive, send)
+  File "/home/runner/ielove-backend/.pythonlibs/lib/python3.12/site-packages/starlette/middleware/exceptions.py", line 62, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/home/runner/ielove-backend/.pythonlibs/lib/python3.12/site-packages/starlette/_exception_handler.py", line 64, in wrapped_app
+    raise exc
+  File "/home/runner/ielove-backend/.pythonlibs/lib/python3.12/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    await app(scope, receive, sender)
+  File "/home/runner/ielove-backend/.pythonlibs/lib/python3.12/site-packages/starlette/routing.py", line 758, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/home/runner/ielove-backend/.pythonlibs/lib/python3.12/site-packages/starlette/routing.py", line 778, in app
+    await route.handle(scope, receive, send)
+  File "/home/runner/ielove-backend/.pythonlibs/lib/python3.12/site-packages/starlette/routing.py", line 299, in handle
+    await self.app(scope, receive, send)
+  File "/home/runner/ielove-backend/.pythonlibs/lib/python3.12/site-packages/starlette/routing.py", line 79, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/home/runner/ielove-backend/.pythonlibs/lib/python3.12/site-packages/starlette/_exception_handler.py", line 64, in wrapped_app
+    raise exc
+  File "/home/runner/ielove-backend/.pythonlibs/lib/python3.12/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    await app(scope, receive, sender)
+  File "/home/runner/ielove-backend/.pythonlibs/lib/python3.12/site-packages/starlette/routing.py", line 74, in app
+    response = await func(request)
+               ^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/ielove-backend/.pythonlibs/lib/python3.12/site-packages/fastapi/routing.py", line 315, in app
+    content = await serialize_response(
+              ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/ielove-backend/.pythonlibs/lib/python3.12/site-packages/fastapi/routing.py", line 155, in serialize_response
+    raise ResponseValidationError(
+fastapi.exceptions.ResponseValidationError: 1 validation errors:
+  {'type': 'get_attribute_error', 'loc': ('response', 'images'), 'msg': "Error extracting attribute: ProgrammingError: (psycopg2.errors.UndefinedColumn) column images.s3_key does not exist\nLINE 1: ...es_url, images.description AS images_description, images.s3_...\n                                                             ^\n\n[SQL: SELECT images.id AS images_id, images.url AS images_url, images.description AS images_description, images.s3_key AS images_s3_key, images.image_type AS images_image_type, images.property_id AS images_property_id, images.room_id AS images_room_id, images.product_id AS images_product_id, images.created_at AS images_created_at \nFROM images \nWHERE %(param_1)s = images.room_id]\n[parameters: {'param_1': 9}]\n(Background on this error at: https://sqlalche.me/e/20/f405)", 'input': <app.models.Room object at 0x7fc9e8cdf530>, 'ctx': {'error': "ProgrammingError: (psycopg2.errors.UndefinedColumn) column images.s3_key does not exist\nLINE 1: ...es_url, images.description AS images_description, images.s3_...\n                                                             ^\n\n[SQL: SELECT images.id AS images_id, images.url AS images_url, images.description AS images_description, images.s3_key AS images_s3_key, images.image_type AS images_image_type, images.property_id AS images_property_id, images.room_id AS images_room_id, images.product_id AS images_product_id, images.created_at AS images_created_at \nFROM images \nWHERE %(param_1)s = images.room_id]\n[parameters: {'param_1': 9}]\n(Background on this error at: https://sqlalche.me/e/20/f405)"}, 'url': 'https://errors.pydantic.dev/2.5/v/get_attribute_error'}

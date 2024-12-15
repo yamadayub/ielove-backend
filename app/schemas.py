@@ -154,13 +154,21 @@ class ProductSchema(BaseModel):
     images: Optional[List[ImageSchema]] = []
 
 
-class RoomSchema(BaseModel):
+class RoomBase(BaseModel):
     id: Optional[int] = None
     property_id: Optional[int] = None
     name: str
     description: Optional[str] = None
-    products: Optional[List[ProductSchema]] = []
-    images: Optional[List[ImageSchema]] = []
+
+class RoomCreate(RoomBase):
+    property_id: int
+
+class RoomSchema(RoomBase):
+    pass
+
+class RoomDetailSchema(RoomBase):
+    products: List[ProductSchema] = []
+    images: List[ImageSchema] = []
 
 
 class PropertySchema(BaseModel):

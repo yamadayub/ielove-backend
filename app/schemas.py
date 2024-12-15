@@ -228,7 +228,7 @@ class ImageBase(BaseModel):
     property_id: Optional[int] = None
     room_id: Optional[int] = None
     product_id: Optional[int] = None
-    s3_key: str
+    s3_key: Optional[str] = None
 
 
 class ImageCreate(ImageBase):

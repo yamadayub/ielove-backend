@@ -170,6 +170,7 @@ class Image(Base):
     id = Column(Integer, primary_key=True)
     url = Column(String, nullable=False)
     description = Column(Text)
+    s3_key = Column(String, nullable=True)  # 追加
     image_type = Column(String, nullable=False)  # main, sub
     property_id = Column(Integer, ForeignKey("properties.id"), nullable=True)
     room_id = Column(Integer, ForeignKey("rooms.id"), nullable=True)

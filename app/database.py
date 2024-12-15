@@ -5,8 +5,10 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.engine import URL
 from typing import Generator
 from .config import get_settings
+# import os
 
 settings = get_settings()
+# print("DATABASE_URL in database.py:", os.getenv("DATABASE_URL"))
 
 # データベースURLの調整（Heroku対応）
 database_url = settings.sqlalchemy_database_url

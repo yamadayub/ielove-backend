@@ -61,9 +61,6 @@ class Property(Base):
     rooms = relationship("Room",
                          back_populates="property",
                          cascade="all, delete-orphan")
-    products = relationship("Product",
-                            back_populates="property",
-                            cascade="all, delete-orphan")
     images = relationship("Image",
                           back_populates="property",
                           cascade="all, delete-orphan")
@@ -104,7 +101,6 @@ class Product(Base):
     __tablename__ = "products"
 
     id = Column(Integer, primary_key=True)
-    property_id = Column(Integer, ForeignKey("properties.id"), nullable=False)
     room_id = Column(Integer, ForeignKey("rooms.id"), nullable=False)
     product_category_id = Column(Integer,
                                  ForeignKey("product_categories.id"),
@@ -118,7 +114,6 @@ class Product(Base):
     catalog_url = Column(String, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
-    property = relationship("Property", back_populates="products")
     room = relationship("Room", back_populates="products")
     product_category = relationship("ProductCategory",
                                     back_populates="products")

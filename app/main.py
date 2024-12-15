@@ -5,13 +5,15 @@ from app.database import SessionLocal
 from app.services.property_service import property_service
 from app.services.room_service import room_service
 from app.services.product_service import product_service
+from app.services.product_specification_service import product_specification_service
 from app.schemas import (
     PropertyDetailSchema,
     PropertyCreateSchema,
     PropertyCreateBaseSchema,
     PropertySchema,
     RoomSchema,
-    ProductCreate
+    ProductCreate,
+    ProductSpecificationSchema
 )
 from app.services.image_service import image_service
 from typing import Optional
@@ -107,3 +109,13 @@ def complete_image_upload(image_id: str,
                           entity_id: Optional[int] = None,
                           db: Session = Depends(get_db)):
     return image_service.complete_upload(db, image_id, entity_type, entity_id)
+
+@app.post("/api/products/{product_id}/specifications", response_model=ProductSpecificationSchema)
+def create_product_specification(
+    product_id: int,
+    spec_data: ProductSpecificationSchema,
+    db: Session = Depends(get_db)
+):
+    """製品に紐づく仕様情報を作成する"""
+    spec_data.product_id = product_id
+    return product_specification_service.create_product_specification(db, spec_data)

@@ -10,7 +10,6 @@ class ProductCRUD(BaseCRUD[Product, ProductSchema, ProductSchema]):
 
     def create(self, db: Session, *, obj_in: ProductSchema) -> Product:
         db_obj = Product(
-            property_id=obj_in.property_id,
             room_id=obj_in.room_id,
             product_category_id=obj_in.product_category_id,
             manufacturer_id=obj_in.manufacturer_id,

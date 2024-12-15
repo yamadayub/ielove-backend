@@ -111,11 +111,11 @@ class Product(Base):
                                  nullable=False)
     manufacturer_id = Column(Integer,
                              ForeignKey("companies.id"),
-                             nullable=False)
+                             nullable=True)
     name = Column(String, nullable=False)
     product_code = Column(String, nullable=False)
-    description = Column(Text)
-    catalog_url = Column(String)
+    description = Column(Text, nullable=True)
+    catalog_url = Column(String, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     property = relationship("Property", back_populates="products")

@@ -249,7 +249,7 @@ class ProductBase(BaseModel):
     property_id: Optional[int] = None
     room_id: Optional[int] = None
     product_category_id: int
-    manufacturer_id: int
+    manufacturer_id: Optional[int] = None
     name: str
     product_code: str
     description: Optional[str] = None

@@ -106,14 +106,20 @@ class CompanySchema(BaseModel):
         from_attributes = True
 
 
-class ImageSchema(BaseModel):
-    id: Optional[int] = None
+class ImageBase(BaseModel):
     url: str
-    description: Optional[str]
-    image_type: Literal["main", "sub"]
+    description: Optional[str] = None
+    image_type: Literal["main", "sub", "temp"]
     property_id: Optional[int] = None
     room_id: Optional[int] = None
     product_id: Optional[int] = None
+    s3_key: Optional[str] = None
+
+class ImageCreate(ImageBase):
+    id: str
+
+class ImageSchema(ImageBase):
+    id: Optional[int] = None
 
 
 class ProductSpecificationSchema(BaseModel):

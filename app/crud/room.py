@@ -3,6 +3,8 @@ from sqlalchemy.orm import Session
 from app.models import Room
 from app.schemas import RoomSchema
 from .base import BaseCRUD
+from typing import Optional, List, Literal
+
 
 class RoomCRUD(BaseCRUD[Room, RoomSchema, RoomSchema]):
     def __init__(self):
@@ -30,8 +32,46 @@ class RoomCRUD(BaseCRUD[Room, RoomSchema, RoomSchema]):
         db.commit()
         return obj
 
-    def get_by_property(self, db: Session, property_id: int, skip: int = 0, limit: int = 100):
-        return db.query(self.model).filter(self.model.property_id == property_id)\
-            .offset(skip).limit(limit).all()
+    def get_multi_by_property(
+        self,
+        db: Session,
+        *,
+        property_id: int,
+        skip: int = 0,
+        limit: int = 100
+    ) -> List[Room]:
+        """
+        指定された物件に紐付く部屋の一覧を取得する
+
+        Args:
+            db (Session): データベースセッション
+            property_id (int): 物件ID
+            skip (int): スキップする件数
+            limit (int): 取得する最大件数
+
+        Returns:
+            List[Room]: 部屋のリスト
+        """
+        return (
+            db.query(Room)
+            .filter(Room.property_id == property_id)
+            .offset(skip)
+            .limit(limit)
+            .all()
+        )
+
+    def get(self, db: Session, id: int) -> Optional[Room]:
+        """
+        指定されたIDの部屋を取得する
+
+        Args:
+            db (Session): データベースセッション
+            id (int): 部屋ID
+
+        Returns:
+            Optional[Room]: 部屋オブジェクト。存在しない場合はNone
+        """
+        return db.query(Room).filter(Room.id == id).first()
+
 
 room = RoomCRUD()

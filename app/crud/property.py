@@ -3,6 +3,8 @@ from sqlalchemy.orm import Session
 from app.models import Property
 from app.schemas import PropertySchema
 from .base import BaseCRUD
+from typing import List, Optional
+
 
 class PropertyCRUD(BaseCRUD[Property, PropertySchema, PropertySchema]):
     def __init__(self):
@@ -37,5 +39,33 @@ class PropertyCRUD(BaseCRUD[Property, PropertySchema, PropertySchema]):
     def get_by_prefecture(self, db: Session, prefecture: str, skip: int = 0, limit: int = 100):
         return db.query(self.model).filter(self.model.prefecture == prefecture)\
             .offset(skip).limit(limit).all()
+
+    def get_multi(self, db: Session, *, skip: int = 0, limit: int = 100) -> List[Property]:
+        """
+        物件の一覧を取得する
+
+        Args:
+            db (Session): データベースセッション
+            skip (int): スキップする件数
+            limit (int): 取得する最大件数
+
+        Returns:
+            List[Property]: 物件のリスト
+        """
+        return db.query(Property).offset(skip).limit(limit).all()
+
+    def get(self, db: Session, id: int) -> Optional[Property]:
+        """
+        指定されたIDの物件を取得する
+
+        Args:
+            db (Session): データベースセッション
+            id (int): 物件ID
+
+        Returns:
+            Optional[Property]: 物件オブジェクト。存在しない場合はNone
+        """
+        return db.query(Property).filter(Property.id == id).first()
+
 
 property = PropertyCRUD()

@@ -30,7 +30,7 @@ class Property(Base):
     __tablename__ = "properties"
 
     id = Column(Integer, primary_key=True)
-    user_id = Column(String, ForeignKey("users.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     name = Column(String, nullable=False)
     description = Column(Text)
     property_type = Column(String, nullable=False)  # house, apartment, other
@@ -180,20 +180,20 @@ class Image(Base):
 class User(Base):
     __tablename__ = "users"
 
-    id = Column(String, primary_key=True)
+    id = Column(Integer, primary_key=True)
+    clerk_user_id = Column(String, unique=True, nullable=False)
     email = Column(String, unique=True, nullable=False)
     name = Column(String, nullable=False)
     user_type = Column(String, nullable=False)  # individual, business
-    role = Column(String, nullable=False,
-                  default='buyer')  # buyer, seller, both
+    # buyer, seller, both
+    role = Column(String, nullable=False, default='buyer')
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     last_sign_in = Column(DateTime(timezone=True))
 
     properties = relationship("Property", back_populates="user")
-    seller_profile = relationship("SellerProfile",
-                                  back_populates="user",
-                                  uselist=False)
+    seller_profile = relationship(
+        "SellerProfile", back_populates="user", uselist=False)
     purchases = relationship("Purchase", back_populates="buyer")
 
 
@@ -201,7 +201,7 @@ class SellerProfile(Base):
     __tablename__ = "seller_profiles"
 
     id = Column(Integer, primary_key=True)
-    user_id = Column(String, ForeignKey("users.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     company_name = Column(String, nullable=True)
     representative_name = Column(String, nullable=True)
     postal_code = Column(String, nullable=True)
@@ -229,7 +229,7 @@ class Purchase(Base):
     __tablename__ = "purchases"
 
     id = Column(Integer, primary_key=True)
-    buyer_id = Column(String, ForeignKey("users.id"), nullable=False)
+    buyer_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     product_for_sale_id = Column(Integer,
                                  ForeignKey("products_for_sale.id"),
                                  nullable=False)

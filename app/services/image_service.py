@@ -1,5 +1,6 @@
-from typing import Optional
+from typing import List, Optional, Literal
 from sqlalchemy.orm import Session
+from app.models import Image
 from app.crud.image import image as image_crud
 from app.schemas import ImageCreate, ImageSchema
 from app.utils.s3 import create_presigned_url, delete_s3_object
@@ -26,8 +27,7 @@ class ImageService:
             # 一時的な画像レコード作成
             image_data = ImageCreate(
                 id=image_id,
-                url=
-                f"https://{settings.AWS_S3_BUCKET}.s3.{settings.AWS_REGION}.amazonaws.com/{key}",
+                url=f"https://{settings.AWS_S3_BUCKET}.s3.{settings.AWS_REGION}.amazonaws.com/{key}",
                 s3_key=key,
                 image_type="temp")
             image_crud.create(db, obj_in=image_data)
@@ -62,7 +62,7 @@ class ImageService:
                         image_id: str,
                         entity_type: Optional[str] = None,
                         entity_id: Optional[int] = None):
-        """画像アップロードの完了処理"""
+        """画像アップ��ードの完了処理"""
         try:
             image = image_crud.get(db, id=image_id)
             if not image:
@@ -91,6 +91,21 @@ class ImageService:
             return image
         except Exception as e:
             raise HTTPException(status_code=500, detail=str(e))
+
+    def get_images_by_entity(
+        self,
+        db: Session,
+        entity_type: str,
+        entity_id: int
+    ) -> List[Image]:
+        """
+        指定されたエンティティに紐づく画像一覧を取得
+        """
+        return image_crud.get_images_by_entity(
+            db,
+            entity_type=entity_type,
+            entity_id=entity_id
+        )
 
 
 image_service = ImageService()

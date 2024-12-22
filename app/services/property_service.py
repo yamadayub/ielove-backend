@@ -1,5 +1,4 @@
-
-from typing import Optional
+from typing import Optional, List, Literal
 from sqlalchemy.orm import Session
 from app.models import Property
 from app.crud.property import property as property_crud
@@ -19,19 +18,49 @@ from app.schemas import (
     ProductSchema,
     ImageSchema,
     ProductSpecificationSchema,
-    ProductDimensionSchema
+    ProductDimensionSchema,
+    PropertyUpdateSchema
 )
+from fastapi import HTTPException
+
 
 class PropertyService:
     def create_property(self, db: Session, property_data: PropertyCreateBaseSchema) -> Property:
         """物件の基本情報のみを作成する"""
         return property_crud.create(db, obj_in=property_data)
 
+    def get_properties(self, db: Session, skip: int = 0, limit: int = 100) -> List[Property]:
+        """
+        物件一覧を取得する
+
+        Args:
+            db (Session): データベースセッション
+            skip (int): スキップする件数
+            limit (int): 取得する最大件数
+
+        Returns:
+            List[Property]: 物件のリスト
+        """
+        return property_crud.get_multi(db, skip=skip, limit=limit)
+
+    def get_property(self, db: Session, property_id: int) -> Optional[Property]:
+        """
+        指定されたIDの物件を取得する
+
+        Args:
+            db (Session): データベースセッション
+            property_id (int): 物件ID
+
+        Returns:
+            Optional[Property]: 物件オブジェクト。存在しない場合はNone
+        """
+        return property_crud.get(db, id=property_id)
+
     def get_property_details(self, db: Session, property_id: int) -> Optional[PropertyDetailSchema]:
         property_obj = property_crud.get(db, id=property_id)
         if not property_obj:
             return None
-            
+
         # Create a dictionary with property data and relationships
         property_data = {
             "id": property_obj.id,
@@ -130,15 +159,17 @@ class PropertyService:
                 "product_id": image.product_id
             } for image in property_obj.images] if property_obj.images else []
         }
-        
+
         return PropertyDetailSchema.model_validate(property_data)
 
     @staticmethod
     def create_property_whole(db: Session, property_data: PropertyCreateSchema) -> int:
         try:
             # Create property record
-            property_dict = property_data.model_dump(exclude={'rooms', 'images'})
-            db_property = property_crud.create(db, obj_in=PropertySchema(**property_dict))
+            property_dict = property_data.model_dump(
+                exclude={'rooms', 'images'})
+            db_property = property_crud.create(
+                db, obj_in=PropertySchema(**property_dict))
 
             # Create property images
             if property_data.images:
@@ -153,9 +184,11 @@ class PropertyService:
             if property_data.rooms:
                 for room_data in property_data.rooms:
                     # Create room record
-                    room_dict = room_data.model_dump(exclude={'products', 'images'})
+                    room_dict = room_data.model_dump(
+                        exclude={'products', 'images'})
                     room_dict['property_id'] = db_property.id
-                    db_room = room_crud.create(db, obj_in=RoomSchema(**room_dict))
+                    db_room = room_crud.create(
+                        db, obj_in=RoomSchema(**room_dict))
 
                     # Create room images
                     if room_data.images:
@@ -164,16 +197,19 @@ class PropertyService:
                             image_dict['property_id'] = None
                             image_dict['room_id'] = db_room.id
                             image_dict['product_id'] = None
-                            image_crud.create(db, obj_in=ImageSchema(**image_dict))
+                            image_crud.create(
+                                db, obj_in=ImageSchema(**image_dict))
 
                     # Create products and their related entities
                     if room_data.products:
                         for product_data in room_data.products:
                             # Create product record
-                            product_dict = product_data.model_dump(exclude={'specifications', 'dimensions', 'images'})
+                            product_dict = product_data.model_dump(
+                                exclude={'specifications', 'dimensions', 'images'})
                             product_dict['property_id'] = db_property.id
                             product_dict['room_id'] = db_room.id
-                            db_product = product_crud.create(db, obj_in=ProductSchema(**product_dict))
+                            db_product = product_crud.create(
+                                db, obj_in=ProductSchema(**product_dict))
 
                             # Create product images
                             if product_data.images:
@@ -182,21 +218,24 @@ class PropertyService:
                                     image_dict['property_id'] = None
                                     image_dict['room_id'] = None
                                     image_dict['product_id'] = db_product.id
-                                    image_crud.create(db, obj_in=ImageSchema(**image_dict))
+                                    image_crud.create(
+                                        db, obj_in=ImageSchema(**image_dict))
 
                             # Create product specifications
                             if product_data.specifications:
                                 for spec_data in product_data.specifications:
                                     spec_dict = spec_data.model_dump()
                                     spec_dict['product_id'] = db_product.id
-                                    spec_crud.create(db, obj_in=ProductSpecificationSchema(**spec_dict))
+                                    spec_crud.create(
+                                        db, obj_in=ProductSpecificationSchema(**spec_dict))
 
                             # Create product dimensions
                             if product_data.dimensions:
                                 for dim_data in product_data.dimensions:
                                     dim_dict = dim_data.model_dump()
                                     dim_dict['product_id'] = db_product.id
-                                    dim_crud.create(db, obj_in=ProductDimensionSchema(**dim_dict))
+                                    dim_crud.create(
+                                        db, obj_in=ProductDimensionSchema(**dim_dict))
 
             db.refresh(db_property)
             return db_property.id
@@ -204,5 +243,39 @@ class PropertyService:
         except Exception as e:
             db.rollback()
             raise e
+
+    async def update_property(self, db: Session, property_id: int, property_data: PropertyUpdateSchema):
+        db_property = db.query(Property).filter(
+            Property.id == property_id).first()
+
+        if not db_property:
+            raise HTTPException(status_code=404, detail="Property not found")
+
+        for field, value in property_data.model_dump(exclude_unset=True).items():
+            setattr(db_property, field, value)
+
+        try:
+            db.commit()
+            db.refresh(db_property)
+            return db_property
+        except Exception as e:
+            db.rollback()
+            raise HTTPException(status_code=400, detail=str(e))
+
+    async def delete_property(self, db: Session, property_id: int):
+        db_property = db.query(Property).filter(
+            Property.id == property_id).first()
+
+        if not db_property:
+            raise HTTPException(status_code=404, detail="Property not found")
+
+        try:
+            db.delete(db_property)
+            db.commit()
+            return {"message": "Property deleted successfully"}
+        except Exception as e:
+            db.rollback()
+            raise HTTPException(status_code=400, detail=str(e))
+
 
 property_service = PropertyService()

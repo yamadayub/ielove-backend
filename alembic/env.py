@@ -7,6 +7,10 @@ from alembic import context
 from app.database import Base
 from app.models import *  # This imports all models
 from app.config import get_settings
+from dotenv import load_dotenv
+
+# .envファイルを読み込む
+load_dotenv()
 
 # このパスの追加はモジュールのインポートのために必要
 current_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -19,8 +23,11 @@ config = context.config
 # 環境設定を取得とURL調整
 settings = get_settings()
 database_url = settings.sqlalchemy_database_url
+print(f"Original database_url: {database_url}")
+
 if database_url.startswith('postgres://'):
     database_url = database_url.replace('postgres://', 'postgresql://')
+    print(f"Modified database_url: {database_url}")
 
 # sqlalchemy.urlを環境変数から取得したURLで上書き
 config.set_main_option("sqlalchemy.url", database_url)
@@ -31,6 +38,7 @@ if config.config_file_name is not None:
 
 # メタデータオブジェクトの設定
 target_metadata = Base.metadata
+
 
 def run_migrations_offline() -> None:
     """
@@ -48,16 +56,18 @@ def run_migrations_offline() -> None:
     with context.begin_transaction():
         context.run_migrations()
 
+
 def run_migrations_online() -> None:
     """
     'online' モードでマイグレーションを実行
     実際にデータベースに接続してマイグレーションを実行
     """
-    # URL文字列を'postgresql://'形式に変換
-    configuration = config.get_section(config.config_ini_section, {})
-    if 'sqlalchemy.url' in configuration:
-        if configuration['sqlalchemy.url'].startswith('postgres://'):
-            configuration['sqlalchemy.url'] = configuration['sqlalchemy.url'].replace('postgres://', 'postgresql://')
+    # 最初に設定したURLを使用
+    configuration = {
+        'sqlalchemy.url': database_url,
+        **config.get_section(config.config_ini_section, {})
+    }
+    print(f"Final configuration: {configuration}")
 
     connectable = engine_from_config(
         configuration,
@@ -69,12 +79,13 @@ def run_migrations_online() -> None:
         context.configure(
             connection=connection,
             target_metadata=target_metadata,
-            compare_type=True,  # カラムの型の変更を検知
-            compare_server_default=True,  # デフォルト値の変更を検知
+            compare_type=True,
+            compare_server_default=True,
         )
 
         with context.begin_transaction():
             context.run_migrations()
+
 
 if context.is_offline_mode():
     run_migrations_offline()

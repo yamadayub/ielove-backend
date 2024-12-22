@@ -1,8 +1,9 @@
-
 from sqlalchemy.orm import Session
 from app.models import Image
 from app.schemas import ImageSchema
 from .base import BaseCRUD
+from typing import List, Optional, Literal
+
 
 class ImageCRUD(BaseCRUD[Image, ImageSchema, ImageSchema]):
     def __init__(self):
@@ -30,16 +31,28 @@ class ImageCRUD(BaseCRUD[Image, ImageSchema, ImageSchema]):
         db.commit()
         return obj
 
-    def get_by_property(self, db: Session, property_id: int):
-        return db.query(self.model).filter(self.model.property_id == property_id).all()
+    def get_images_by_entity(
+        self,
+        db: Session,
+        entity_type: str,
+        entity_id: int
+    ) -> List[Image]:
+        """
+        指定されたエンティティに紐づく画像一覧を取得
+        """
+        query = db.query(Image)
 
-    def get_by_room(self, db: Session, room_id: int):
-        return db.query(self.model).filter(self.model.room_id == room_id).all()
+        if entity_type == "property":
+            query = query.filter(Image.property_id == entity_id)
+        elif entity_type == "room":
+            query = query.filter(Image.room_id == entity_id)
+        elif entity_type == "product":
+            query = query.filter(Image.product_id == entity_id)
 
-    def get_by_product(self, db: Session, product_id: int):
-        return db.query(self.model).filter(self.model.product_id == product_id).all()
+        return query.all()
 
     def get_main_images(self, db: Session):
         return db.query(self.model).filter(self.model.image_type == "main").all()
+
 
 image = ImageCRUD()

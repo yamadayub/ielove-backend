@@ -45,11 +45,7 @@ app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",  # 開発環境
-        "http://localhost:5174",  # 追加: フロントエンドの新しいオリジン
-        "https://ielove-frontend-staging-4f3b275ce8ee.herokuapp.com"  # ステージング環境
-    ],
+    allow_origins=settings.CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -296,7 +292,7 @@ def get_product(product_id: int, db: Session = Depends(get_db)):
 @app.get("/api/products/{product_id}/details", response_model=ProductDetailSchema, summary="指定されたIDの製品の詳細情報を取得する")
 def get_product_details(product_id: int, db: Session = Depends(get_db)):
     """
-    製品の詳細情報（仕様・寸法��含む）を取得
+    製品の詳細情報（仕様・寸法を含む）を取得
     """
     details = product_service.get_product_details(db, product_id)
     if not details:
@@ -317,7 +313,7 @@ def get_images(
 
     Parameters:
     - entity_type: "property", "room", "product"のいずれか
-    - entity_id: 対象のエンティテのID
+    - entity_id: 対象のエンティティのID
     """
     return image_service.get_images_by_entity(
         db,
@@ -392,7 +388,7 @@ def update_seller_profile(
     return updated_profile
 
 
-@app.post("/api/users/me/seller", response_model=SellerProfileSchema, tags=["users"], summary="Seller情報を作��する")
+@app.post("/api/users/me/seller", response_model=SellerProfileSchema, tags=["users"], summary="Seller情報を作成する")
 def create_seller_profile(
     user_id: str,
     profile_create: SellerProfileCreate,

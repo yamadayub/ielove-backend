@@ -64,6 +64,10 @@ class Settings(BaseSettings):
         ])
 
 
+# settingsインスタンスを作成
+settings = Settings()
+
+
 @lru_cache
 def get_settings() -> Settings:
     """
@@ -72,8 +76,4 @@ def get_settings() -> Settings:
     Returns:
         Settings: 設定インスタンス
     """
-    settings = Settings()
-    print("環境変数の読み込み状況:")
-    print(f"DATABASE_URL: {settings.DATABASE_URL}")
-    print(f"ENVIRONMENT: {settings.ENVIRONMENT}")
     return settings

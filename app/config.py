@@ -1,6 +1,6 @@
 from pydantic_settings import BaseSettings
 from functools import lru_cache
-from typing import Optional
+from typing import Optional, List
 
 
 class Settings(BaseSettings):
@@ -15,6 +15,12 @@ class Settings(BaseSettings):
     AWS_SECRET_ACCESS_KEY: Optional[str] = None
     AWS_S3_BUCKET: Optional[str] = None
     AWS_REGION: str = "ap-northeast-1"
+
+    CORS_ORIGINS: List[str] = [
+        "http://localhost:5173",
+        "http://localhost:5174",
+        "https://ielove-frontend-staging-4f3b275ce8ee.herokuapp.com"
+    ]
 
     class Config:
         env_file = ".env"

@@ -1,6 +1,6 @@
 from typing import Optional, List, Literal
-from sqlalchemy.orm import Session
-from app.models import Property
+from sqlalchemy.orm import Session, joinedload
+from app.models import Property, Room, Product, ProductSpecification, ProductDimension
 from app.crud.property import property as property_crud
 from app.crud.room import room as room_crud
 from app.crud.product import product as product_crud
@@ -10,22 +10,18 @@ from app.crud.image import image as image_crud
 from app.crud.user import user as user_crud
 from app.crud.company import company as company_crud
 from app.schemas import (
-    PropertyDetailSchema,
-    PropertyCreateSchema,
-    PropertyCreateBaseSchema,
     PropertySchema,
     RoomSchema,
     ProductSchema,
     ImageSchema,
     ProductSpecificationSchema,
-    ProductDimensionSchema,
-    PropertyUpdateSchema
+    ProductDimensionSchema
 )
 from fastapi import HTTPException
 
 
 class PropertyService:
-    def create_property(self, db: Session, property_data: PropertyCreateBaseSchema) -> Property:
+    def create_property(self, db: Session, property_data: PropertySchema) -> Property:
         """物件の基本情報のみを作成する"""
         return property_crud.create(db, obj_in=property_data)
 
@@ -56,114 +52,91 @@ class PropertyService:
         """
         return property_crud.get(db, id=property_id)
 
-    def get_property_details(self, db: Session, property_id: int) -> Optional[PropertyDetailSchema]:
-        property_obj = property_crud.get(db, id=property_id)
-        if not property_obj:
-            return None
+    def get_property_details(self, db: Session, property_id: int):
+        """物件の詳細情報を関連データと共に取得"""
 
-        # Create a dictionary with property data and relationships
-        property_data = {
-            "id": property_obj.id,
-            "user_id": property_obj.user_id,
-            "name": property_obj.name,
-            "description": property_obj.description,
-            "property_type": property_obj.property_type,
-            "prefecture": property_obj.prefecture,
-            "layout": property_obj.layout,
-            "construction_year": property_obj.construction_year,
-            "construction_month": property_obj.construction_month,
-            "site_area": property_obj.site_area,
-            "building_area": property_obj.building_area,
-            "floor_count": property_obj.floor_count,
-            "structure": property_obj.structure,
-            "design_company_id": property_obj.design_company_id,
-            "construction_company_id": property_obj.construction_company_id,
-            "user": {
-                "id": property_obj.user.id,
-                "email": property_obj.user.email,
-                "name": property_obj.user.name,
-                "user_type": property_obj.user.user_type,
-                "role": property_obj.user.role
-            } if property_obj.user else None,
-            "design_company": {
-                "id": property_obj.design_company.id,
-                "name": property_obj.design_company.name,
-                "company_type": property_obj.design_company.company_type,
-                "description": property_obj.design_company.description,
-                "website": property_obj.design_company.website
-            } if property_obj.design_company else None,
-            "construction_company": {
-                "id": property_obj.construction_company.id,
-                "name": property_obj.construction_company.name,
-                "company_type": property_obj.construction_company.company_type,
-                "description": property_obj.construction_company.description,
-                "website": property_obj.construction_company.website
-            } if property_obj.construction_company else None,
-            "rooms": [{
+        # 物件情報を関連データと共に取得
+        property = db.query(Property)\
+            .options(
+                joinedload(Property.rooms)
+                .joinedload(Room.products)
+                .joinedload(Product.specifications),
+                joinedload(Property.rooms)
+                .joinedload(Room.products)
+                .joinedload(Product.dimensions)
+        )\
+            .filter(Property.id == property_id)\
+            .first()
+
+        if not property:
+            raise HTTPException(status_code=404, detail="Property not found")
+
+        # 画像情報を取得
+        property_images = image_crud.get_images(db, property_id=property_id)
+
+        # レスポンスの構築
+        result = {
+            "id": property.id,
+            "user_id": property.user_id,
+            "name": property.name,
+            "description": property.description,
+            "property_type": property.property_type,
+            "prefecture": property.prefecture,
+            "layout": property.layout,
+            "construction_year": property.construction_year,
+            "construction_month": property.construction_month,
+            "site_area": property.site_area,
+            "building_area": property.building_area,
+            "floor_count": property.floor_count,
+            "structure": property.structure,
+            "design_company_id": property.design_company_id,
+            "construction_company_id": property.construction_company_id,
+            "created_at": property.created_at,
+            "images": property_images,
+            "rooms": []
+        }
+
+        for room in property.rooms:
+            # 部屋の画像を取得
+            room_images = image_crud.get_images(db, room_id=room.id)
+
+            room_data = {
                 "id": room.id,
-                "property_id": room.property_id,
                 "name": room.name,
                 "description": room.description,
-                "products": [{
+                "property_id": room.property_id,
+                "created_at": room.created_at,
+                "images": room_images,
+                "products": []
+            }
+
+            for product in room.products:
+                # 製品の画像を取得
+                product_images = image_crud.get_images(
+                    db, product_id=product.id)
+
+                product_data = {
                     "id": product.id,
-                    "property_id": product.property_id,
+                    "name": product.name,
+                    "description": product.description,
                     "room_id": product.room_id,
                     "product_category_id": product.product_category_id,
                     "manufacturer_id": product.manufacturer_id,
-                    "name": product.name,
                     "product_code": product.product_code,
-                    "description": product.description,
                     "catalog_url": product.catalog_url,
-                    "specifications": [{
-                        "id": spec.id,
-                        "product_id": spec.product_id,
-                        "spec_type": spec.spec_type,
-                        "spec_value": spec.spec_value,
-                        "manufacturer_id": spec.manufacturer_id,
-                        "model_number": spec.model_number
-                    } for spec in product.specifications],
-                    "dimensions": [{
-                        "id": dim.id,
-                        "product_id": dim.product_id,
-                        "dimension_type": dim.dimension_type,
-                        "value": dim.value,
-                        "unit": dim.unit
-                    } for dim in product.dimensions],
-                    "images": [{
-                        "id": image.id,
-                        "url": image.url,
-                        "description": image.description,
-                        "image_type": image.image_type,
-                        "property_id": image.property_id,
-                        "room_id": image.room_id,
-                        "product_id": image.product_id
-                    } for image in product.images]
-                } for product in room.products],
-                "images": [{
-                    "id": image.id,
-                    "url": image.url,
-                    "description": image.description,
-                    "image_type": image.image_type,
-                    "property_id": image.property_id,
-                    "room_id": image.room_id,
-                    "product_id": image.product_id
-                } for image in room.images]
-            } for room in property_obj.rooms] if property_obj.rooms else [],
-            "images": [{
-                "id": image.id,
-                "url": image.url,
-                "description": image.description,
-                "image_type": image.image_type,
-                "property_id": image.property_id,
-                "room_id": image.room_id,
-                "product_id": image.product_id
-            } for image in property_obj.images] if property_obj.images else []
-        }
+                    "created_at": product.created_at,
+                    "images": product_images,
+                    "specifications": product.specifications,
+                    "dimensions": product.dimensions
+                }
+                room_data["products"].append(product_data)
 
-        return PropertyDetailSchema.model_validate(property_data)
+            result["rooms"].append(room_data)
+
+        return result
 
     @staticmethod
-    def create_property_whole(db: Session, property_data: PropertyCreateSchema) -> int:
+    def create_property_whole(db: Session, property_data: PropertySchema) -> int:
         try:
             # Create property record
             property_dict = property_data.model_dump(
@@ -244,7 +217,7 @@ class PropertyService:
             db.rollback()
             raise e
 
-    async def update_property(self, db: Session, property_id: int, property_data: PropertyUpdateSchema):
+    async def update_property(self, db: Session, property_id: int, property_data: PropertySchema):
         db_property = db.query(Property).filter(
             Property.id == property_id).first()
 

@@ -2,7 +2,7 @@ from typing import List, Optional, Literal
 from sqlalchemy.orm import Session
 from app.models import Image
 from app.crud.image import image as image_crud
-from app.schemas import ImageCreate, ImageSchema
+from app.schemas import ImageSchema
 from app.utils.s3 import create_presigned_url, delete_s3_object
 from app.config import get_settings
 import uuid
@@ -13,11 +13,15 @@ settings = get_settings()
 
 class ImageService:
 
+    def get_image(self, db: Session, image_id: int) -> Optional[Image]:
+        """指定されたIDの画像を取得する"""
+        return image_crud.get(db, id=image_id)
+
     def get_upload_url(self, db: Session, file_name: str, content_type: str):
         """プリサインドURLを生成し、一時的な画像レコードを作成"""
         try:
-            image_id = str(uuid.uuid4())
-            key = f"temp/{image_id}/{file_name}"
+            unique_id = str(uuid.uuid4())
+            key = f"temp/{unique_id}/{file_name}"
 
             # プリサインドURL生成
             presigned_url = create_presigned_url(bucket=settings.AWS_S3_BUCKET,
@@ -25,22 +29,21 @@ class ImageService:
                                                  content_type=content_type)
 
             # 一時的な画像レコード作成
-            image_data = ImageCreate(
-                id=image_id,
+            image_data = ImageSchema(
                 url=f"https://{settings.AWS_S3_BUCKET}.s3.{settings.AWS_REGION}.amazonaws.com/{key}",
                 s3_key=key,
                 image_type="temp")
-            image_crud.create(db, obj_in=image_data)
+            db_image = image_crud.create(db, obj_in=image_data)
 
             return {
                 "upload_url": presigned_url,
-                "image_id": image_id,
-                "image_url": image_data.url
+                "image_id": db_image.id,
+                "image_url": db_image.url
             }
         except Exception as e:
             raise HTTPException(status_code=500, detail=str(e))
 
-    def delete_image(self, db: Session, image_id: str):
+    def delete_image(self, db: Session, image_id: int):
         """画像の削除"""
         try:
             image = image_crud.get(db, id=image_id)
@@ -57,55 +60,83 @@ class ImageService:
         except Exception as e:
             raise HTTPException(status_code=500, detail=str(e))
 
-    def complete_upload(self,
-                        db: Session,
-                        image_id: str,
-                        entity_type: Optional[str] = None,
-                        entity_id: Optional[int] = None):
-        """画像アップ��ードの完了処理"""
-        try:
-            image = image_crud.get(db, id=image_id)
-            if not image:
-                raise HTTPException(status_code=404, detail="Image not found")
-
-            if entity_type and entity_id:
-                update_data = {
-                    "image_type": "main",
-                    f"{entity_type}_id": entity_id
-                }
-
-                # S3での移動処理
-                new_key = f"{entity_type}s/{entity_id}/{image_id}"
-                s3_client.copy_object(
-                    Bucket=settings.AWS_S3_BUCKET,
-                    CopySource=f"{settings.AWS_S3_BUCKET}/{image.s3_key}",
-                    Key=new_key)
-                delete_s3_object(settings.AWS_S3_BUCKET, image.s3_key)
-
-                update_data["s3_key"] = new_key
-                update_data[
-                    "url"] = f"https://{settings.AWS_S3_BUCKET}.s3.{settings.AWS_REGION}.amazonaws.com/{new_key}"
-
-                image = image_crud.update(db, db_obj=image, obj_in=update_data)
-
-            return image
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=str(e))
-
-    def get_images_by_entity(
+    def complete_upload(
         self,
         db: Session,
-        entity_type: str,
-        entity_id: int
+        image_id: int,
+        property_id: Optional[int] = None,
+        room_id: Optional[int] = None,
+        product_id: Optional[int] = None
+    ) -> Image:
+        """
+        画像のアップロードを完了し、指定された各エンティティに関連付けます。
+
+        Args:
+            db: データベースセッション
+            image_id: 画像ID
+            property_id: 物件ID（オプション）
+            room_id: 部屋ID（オプション）
+            product_id: 製品ID（オプション）
+
+        Returns:
+            更新された画像エンティティ
+        """
+        image = image_crud.get(db, id=image_id)
+        if not image:
+            raise HTTPException(status_code=404, detail="Image not found")
+
+        # 各エンティティIDを設定
+        update_data = {
+            "property_id": property_id,
+            "room_id": room_id,
+            "product_id": product_id,
+            "image_type": "main"  # 一時的なステータスから本番のステータスに変更
+        }
+
+        return image_crud.update(db, db_obj=image, obj_in=update_data)
+
+    def get_images(
+        self,
+        db: Session,
+        property_id: Optional[int] = None,
+        room_id: Optional[int] = None,
+        product_id: Optional[int] = None,
+        include_children: bool = True
     ) -> List[Image]:
         """
-        指定されたエンティティに紐づく画像一覧を取得
+        指定された条件に基づいて画像を検索します。
+
+        Args:
+            db: データベースセッション
+            property_id: 物件ID（オプション）
+            room_id: 部屋ID（オプション）
+            product_id: 製品ID（オプション）
+            include_children: 下位階層の画像を含めるか（デフォルト: True）
+
+        Note:
+            優先順位: property_id > room_id > product_id
         """
-        return image_crud.get_images_by_entity(
-            db,
-            entity_type=entity_type,
-            entity_id=entity_id
-        )
+        if not include_children:
+            # 指定された階層の画像のみを取得
+            return image_crud.get_images(
+                db,
+                property_id=property_id,
+                room_id=room_id,
+                product_id=product_id
+            )
+
+        # include_children=Trueの場合の処理
+        if property_id:
+            # 物件に関連する全ての画像を取得
+            return image_crud.get_images(db, property_id=property_id)
+        elif room_id:
+            # 部屋に関連する全ての画像を取得
+            return image_crud.get_images(db, room_id=room_id)
+        elif product_id:
+            # 製品の画像のみを取得
+            return image_crud.get_images(db, product_id=product_id)
+
+        return []
 
 
 image_service = ImageService()

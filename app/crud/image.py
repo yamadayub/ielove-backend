@@ -1,8 +1,9 @@
 from sqlalchemy.orm import Session
-from app.models import Image
+from app.models import Image, Room, Product
 from app.schemas import ImageSchema
 from .base import BaseCRUD
-from typing import List, Optional, Literal
+from typing import List, Optional
+from fastapi import HTTPException
 
 
 class ImageCRUD(BaseCRUD[Image, ImageSchema, ImageSchema]):
@@ -10,49 +11,51 @@ class ImageCRUD(BaseCRUD[Image, ImageSchema, ImageSchema]):
         super().__init__(Image)
 
     def create(self, db: Session, *, obj_in: ImageSchema) -> Image:
+        # 関連性のバリデーション
+        if obj_in.product_id:
+            # 製品が指定されている場合、部屋と物件も必須
+            product = db.query(Product).get(obj_in.product_id)
+            if not product:
+                raise HTTPException(
+                    status_code=404, detail="Product not found")
+            obj_in.room_id = product.room_id
+            room = db.query(Room).get(product.room_id)
+            obj_in.property_id = room.property_id
+        elif obj_in.room_id:
+            # 部屋が指定されている場合、物件も必須
+            room = db.query(Room).get(obj_in.room_id)
+            if not room:
+                raise HTTPException(status_code=404, detail="Room not found")
+            obj_in.property_id = room.property_id
+
         db_obj = Image(**obj_in.dict())
         db.add(db_obj)
         db.commit()
         db.refresh(db_obj)
         return db_obj
 
-    def update(self, db: Session, *, db_obj: Image, obj_in: ImageSchema) -> Image:
-        update_data = obj_in.dict(exclude_unset=True)
-        for field, value in update_data.items():
-            setattr(db_obj, field, value)
-        db.add(db_obj)
-        db.commit()
-        db.refresh(db_obj)
-        return db_obj
-
-    def delete(self, db: Session, *, id: int) -> Image:
-        obj = db.query(self.model).get(id)
-        db.delete(obj)
-        db.commit()
-        return obj
-
-    def get_images_by_entity(
+    def get_images(
         self,
         db: Session,
-        entity_type: str,
-        entity_id: int
+        *,
+        property_id: Optional[int] = None,
+        room_id: Optional[int] = None,
+        product_id: Optional[int] = None
     ) -> List[Image]:
         """
-        指定されたエンティティに紐づく画像一覧を取得
+        指定された条件に基づいて画像を検索します。
+        優先順位: property_id > room_id > product_id
         """
         query = db.query(Image)
 
-        if entity_type == "property":
-            query = query.filter(Image.property_id == entity_id)
-        elif entity_type == "room":
-            query = query.filter(Image.room_id == entity_id)
-        elif entity_type == "product":
-            query = query.filter(Image.product_id == entity_id)
+        if property_id:
+            return query.filter(Image.property_id == property_id).all()
+        elif room_id:
+            return query.filter(Image.room_id == room_id).all()
+        elif product_id:
+            return query.filter(Image.product_id == product_id).all()
 
-        return query.all()
-
-    def get_main_images(self, db: Session):
-        return db.query(self.model).filter(self.model.image_type == "main").all()
+        return []
 
 
 image = ImageCRUD()

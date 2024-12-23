@@ -1,19 +1,22 @@
 from sqlalchemy.orm import Session
 from app.crud.product import product as product_crud
-from app.schemas import ProductCreate
+from app.schemas import ProductSchema
 from typing import Optional
 from fastapi import HTTPException
 from app.models import Product, ProductSpecification, ProductDimension
 from typing import List
 from app.schemas import ProductSpecificationSchema, ProductDimensionSchema
+from sqlalchemy.orm import joinedload
+from app.crud.image import image as image_crud
+from app.models import Room
 
 
 class ProductService:
-    def create_product(self, db: Session, product_data: ProductCreate) -> ProductCreate:
+    def create_product(self, db: Session, product_data: ProductSchema) -> ProductSchema:
         """製品情報を作成する"""
         return product_crud.create(db, obj_in=product_data)
 
-    def get_product(self, db: Session, product_id: int) -> Optional[ProductCreate]:
+    def get_product(self, db: Session, product_id: int) -> Optional[ProductSchema]:
         """製品情報を取得する"""
         return product_crud.get(db, id=product_id)
 
@@ -24,15 +27,49 @@ class ProductService:
         return product_crud.get_products_by_room(db, room_id=room_id, skip=skip, limit=limit)
 
     def get_product_details(self, db: Session, product_id: int):
-        """
-        製品の細情報（仕様・寸法を含む）を取得
-        """
-        product = product_crud.get_product_with_details(db, product_id)
-        if not product:
-            return None
-        return product
+        """製品の詳細情報を関連データと共に取得"""
 
-    async def update_product(self, db: Session, product_id: int, product_data: ProductCreate):
+        # 製品情報を関連データと共に取得
+        product = db.query(Product)\
+            .options(
+                joinedload(Product.specifications),
+                joinedload(Product.dimensions),
+                joinedload(Product.room).joinedload(Room.property)
+        )\
+            .filter(Product.id == product_id)\
+            .first()
+
+        if not product:
+            raise HTTPException(status_code=404, detail="Product not found")
+
+        # 製品の画像を取得
+        product_images = image_crud.get_images(db, product_id=product_id)
+
+        # レスポンスの構築
+        result = {
+            "id": product.id,
+            "name": product.name,
+            "description": product.description,
+            "room_id": product.room_id,
+            "product_category_id": product.product_category_id,
+            "manufacturer_id": product.manufacturer_id,
+            "product_code": product.product_code,
+            "catalog_url": product.catalog_url,
+            "created_at": product.created_at,
+            "specifications": product.specifications,
+            "dimensions": product.dimensions,
+            "images": product_images,
+            # 部屋と物件の基本情報
+            "room_name": product.room.name,
+            "property_id": product.room.property_id,
+            "property_name": product.room.property.name,
+            "property_type": product.room.property.property_type,
+            "prefecture": product.room.property.prefecture
+        }
+
+        return result
+
+    async def update_product(self, db: Session, product_id: int, product_data: ProductSchema):
         db_product = db.query(Product).filter(Product.id == product_id).first()
 
         if not db_product:
@@ -140,7 +177,7 @@ class ProductService:
         product_id: int,
         spec_data: ProductSpecificationSchema
     ):
-        # 製品の存在確��
+        # 製品の存在確認
         db_product = db.query(Product).filter(Product.id == product_id).first()
         if not db_product:
             raise HTTPException(status_code=404, detail="Product not found")
@@ -228,104 +265,6 @@ class ProductService:
         except Exception as e:
             db.rollback()
             raise HTTPException(status_code=400, detail=str(e))
-
-    async def update_product_dimension(
-        self,
-        db: Session,
-        dimension_id: int,
-        dimension_data: ProductDimensionSchema
-    ):
-        db_dimension = db.query(ProductDimension).filter(
-            ProductDimension.id == dimension_id
-        ).first()
-
-        if not db_dimension:
-            raise HTTPException(status_code=404, detail="Dimension not found")
-
-        for field, value in dimension_data.model_dump(exclude_unset=True).items():
-            if field != "id" and field != "product_id":  # IDとproduct_idは更新しない
-                setattr(db_dimension, field, value)
-
-        try:
-            db.commit()
-            db.refresh(db_dimension)
-            return db_dimension
-        except Exception as e:
-            db.rollback()
-            raise HTTPException(status_code=400, detail=str(e))
-
-    async def delete_product_dimension(self, db: Session, dimension_id: int):
-        db_dimension = db.query(ProductDimension).filter(
-            ProductDimension.id == dimension_id
-        ).first()
-
-        if not db_dimension:
-            raise HTTPException(status_code=404, detail="Dimension not found")
-
-        try:
-            db.delete(db_dimension)
-            db.commit()
-            return {"message": "Dimension deleted successfully"}
-        except Exception as e:
-            db.rollback()
-            raise HTTPException(status_code=400, detail=str(e))
-
-    async def get_product_specifications(
-        self,
-        db: Session,
-        product_id: int,
-        skip: int = 0,
-        limit: int = 100
-    ):
-        # 製品の存在確認
-        db_product = db.query(Product).filter(Product.id == product_id).first()
-        if not db_product:
-            raise HTTPException(status_code=404, detail="Product not found")
-
-        specifications = db.query(ProductSpecification).filter(
-            ProductSpecification.product_id == product_id
-        ).offset(skip).limit(limit).all()
-
-        return specifications
-
-    async def get_product_specification(self, db: Session, spec_id: int):
-        db_spec = db.query(ProductSpecification).filter(
-            ProductSpecification.id == spec_id
-        ).first()
-
-        if not db_spec:
-            raise HTTPException(
-                status_code=404, detail="Specification not found")
-
-        return db_spec
-
-    async def get_product_dimensions(
-        self,
-        db: Session,
-        product_id: int,
-        skip: int = 0,
-        limit: int = 100
-    ):
-        # 製品の存在確認
-        db_product = db.query(Product).filter(Product.id == product_id).first()
-        if not db_product:
-            raise HTTPException(status_code=404, detail="Product not found")
-
-        dimensions = db.query(ProductDimension).filter(
-            ProductDimension.product_id == product_id
-        ).offset(skip).limit(limit).all()
-
-        return dimensions
-
-    async def get_product_dimension(self, db: Session, dimension_id: int):
-        db_dimension = db.query(ProductDimension).filter(
-            ProductDimension.id == dimension_id
-        ).first()
-
-        if not db_dimension:
-            raise HTTPException(status_code=404, detail="Dimension not found")
-
-        return db_dimension
 
 
 product_service = ProductService()

@@ -1,4 +1,4 @@
-from typing import Optional, List, Literal, Dict, Any, Type
+from typing import Optional, List, Literal
 from pydantic import BaseModel, ConfigDict, model_validator
 from datetime import datetime
 
@@ -23,6 +23,16 @@ class ProductCategorySchema(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class CompanySchema(BaseModel):
+    id: Optional[int] = None
+    name: str
+    company_type: Literal["manufacturer", "design", "construction"]
+    description: Optional[str] = None
+    website: Optional[str] = None
+
+    model_config = ConfigDict(from_attributes=True)
 
 
 class PurchaseSchema(BaseModel):
@@ -95,22 +105,11 @@ class SellerProfileSchema(BaseModel):
         from_attributes = True
 
 
-class CompanySchema(BaseModel):
-    id: Optional[int] = None
-    name: str
-    company_type: Literal["manufacturer", "design", "construction"]
-    description: Optional[str] = None
-    website: Optional[str] = None
-
-    class Config:
-        from_attributes = True
-
-
 class ProductSpecificationSchema(BaseModel):
     id: Optional[int] = None
     product_id: Optional[int] = None
-    spec_type: Optional[str] = ''
-    spec_value: Optional[str] = ''
+    spec_type: str
+    spec_value: str
     manufacturer_id: Optional[int] = None
     model_number: Optional[str] = None
 
@@ -123,9 +122,9 @@ class ProductSpecificationSchema(BaseModel):
 class ProductDimensionSchema(BaseModel):
     id: Optional[int] = None
     product_id: Optional[int] = None
-    dimension_type: Optional[str] = ''
-    value: Optional[float] = None
-    unit: Optional[str] = ''
+    dimension_type: str
+    value: float
+    unit: str
 
 
 class ProductBase(BaseModel):

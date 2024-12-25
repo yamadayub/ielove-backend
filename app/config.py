@@ -20,7 +20,10 @@ class Settings(BaseSettings):
         "http://localhost:5173",
         "http://localhost:5174",
         "https://ielove-frontend-staging-4f3b275ce8ee.herokuapp.com",
-        "https://ie-love.com/"
+        "https://ie-love.com",
+        "http://ie-love.com",
+        "https://www.ie-love.com",
+        "http://www.ie-love.com",
     ]
 
     class Config:

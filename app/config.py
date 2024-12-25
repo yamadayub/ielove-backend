@@ -19,7 +19,8 @@ class Settings(BaseSettings):
     CORS_ORIGINS: List[str] = [
         "http://localhost:5173",
         "http://localhost:5174",
-        "https://ielove-frontend-staging-4f3b275ce8ee.herokuapp.com"
+        "https://ielove-frontend-staging-4f3b275ce8ee.herokuapp.com",
+        "https://ie-love.com/"
     ]
 
     class Config:

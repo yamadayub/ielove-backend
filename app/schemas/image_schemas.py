@@ -10,6 +10,7 @@ class ImageSchema(BaseModel):
     property_id: Optional[int] = None
     room_id: Optional[int] = None
     product_id: Optional[int] = None
+    image_type: Optional[str] = None
     created_at: datetime
 
     class Config:

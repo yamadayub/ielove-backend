@@ -53,13 +53,13 @@ INSERT INTO rooms (property_id, name, description) VALUES
 -- 6. 部屋の画像を登録
 INSERT INTO images (url, image_type, room_id, description) VALUES
 ('https://images.unsplash.com/photo-1600210492486-724fe5c67fb0', 'main', 1, 'リビングダイニング'),
-('https://images.unsplash.com/photo-1600210492486-724fe5c67fb0', 'main', 2, 'キッチン'),
-('https://images.unsplash.com/photo-1600210492486-724fe5c67fb0', 'main', 3, '主寝室'),
-('https://images.unsplash.com/photo-1600210492486-724fe5c67fb0', 'main', 4, '玄関'),
-('https://images.unsplash.com/photo-1600210492486-724fe5c67fb0', 'main', 5, '廊下'),
-('https://images.unsplash.com/photo-1600210492486-724fe5c67fb0', 'main', 6, '洗面所'),
-('https://images.unsplash.com/photo-1600210492486-724fe5c67fb0', 'main', 7, '風呂'),
-('https://images.unsplash.com/photo-1600210492486-724fe5c67fb0', 'main', 8, 'トイレ');
+('https://images.unsplash.com/photo-1556911220-bff31c812dba', 'main', 2, 'キッチン'),
+('https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af', 'main', 3, '主寝室'),
+('https://plus.unsplash.com/premium_photo-1675616575361-dee0c05a3113', 'main', 4, '玄関'),
+('https://plus.unsplash.com/premium_photo-1676320514069-b1a65a7a6b0b', 'main', 5, '廊下'),
+('https://images.unsplash.com/photo-1564540583246-934409427776', 'main', 6, '洗面所'),
+('https://images.unsplash.com/photo-1507652313519-d4e9174996dd', 'main', 7, '風呂'),
+('https://plus.unsplash.com/premium_photo-1674815329632-12282e4fd0b8', 'main', 8, 'トイレ');
 
 -- 7. 製品カテゴリーを登録
 INSERT INTO product_categories (name, description) VALUES

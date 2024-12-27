@@ -1,15 +1,13 @@
-from typing import Optional
+from typing import List, Optional
 from pydantic import BaseModel
-from datetime import datetime
 
 
 class ProductDimensionSchema(BaseModel):
     id: Optional[int] = None
     product_id: int
-    dimension_type: str
-    value: float
-    unit: str
-    created_at: datetime
+    dimension_type: Optional[str] = None
+    value: Optional[float] = None
+    unit: Optional[str] = None
 
     class Config:
         from_attributes = True

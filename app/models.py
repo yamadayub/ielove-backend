@@ -104,12 +104,12 @@ class Product(Base):
     room_id = Column(Integer, ForeignKey("rooms.id"), nullable=False)
     product_category_id = Column(Integer,
                                  ForeignKey("product_categories.id"),
-                                 nullable=False)
+                                 nullable=True)
     manufacturer_id = Column(Integer,
                              ForeignKey("companies.id"),
                              nullable=True)
     name = Column(String, nullable=False)
-    product_code = Column(String, nullable=False)
+    product_code = Column(String, nullable=True)
     description = Column(Text, nullable=True)
     catalog_url = Column(String, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
@@ -162,14 +162,15 @@ class ProductDimension(Base):
 class Image(Base):
     __tablename__ = "images"
 
-    id = Column(Integer, primary_key=True)
+    id = Column(Integer, primary_key=True, index=True)
     url = Column(String, nullable=False)
     description = Column(Text)
-    s3_key = Column(String, nullable=True)  # 追加
-    image_type = Column(String, nullable=False)  # main, sub
+    s3_key = Column(String, nullable=True)
     property_id = Column(Integer, ForeignKey("properties.id"), nullable=True)
     room_id = Column(Integer, ForeignKey("rooms.id"), nullable=True)
     product_id = Column(Integer, ForeignKey("products.id"), nullable=True)
+    image_type = Column(String, nullable=True)
+    status = Column(String, nullable=False, default='pending')
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     property = relationship("Property", back_populates="images")

@@ -45,8 +45,9 @@ class ImageCRUD(BaseCRUD[Image, ImageSchema, ImageSchema]):
         """
         指定された条件に基づいて画像を検索します。
         優先順位: property_id > room_id > product_id
+        ステータスがcompletedの画像のみを返します。
         """
-        query = db.query(Image)
+        query = db.query(Image).filter(Image.status == "completed")
 
         if property_id:
             return query.filter(Image.property_id == property_id).all()
@@ -55,7 +56,7 @@ class ImageCRUD(BaseCRUD[Image, ImageSchema, ImageSchema]):
         elif product_id:
             return query.filter(Image.product_id == product_id).all()
 
-        return []
+        return query.all()  # 条件が指定されていない場合は、全てのcompletedな画像を返す
 
 
 image = ImageCRUD()

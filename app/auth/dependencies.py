@@ -1,9 +1,9 @@
-from fastapi import Depends, HTTPException, status, Query
+from fastapi import Depends, HTTPException, status, Header
 from sqlalchemy.orm import Session
 from app.database import SessionLocal
 from app.services.user_service import user_service
 from app.schemas import UserSchema
-from typing import Optional, Annotated
+from typing import Optional
 
 
 def get_db():
@@ -15,14 +15,15 @@ def get_db():
 
 
 async def get_current_user(
-    clerk_user_id: Annotated[str, Query(description="ClerkのユーザーID")],
+    clerk_user_id: str = Header(..., description="ClerkのユーザーID",
+                                alias="x-clerk-user-id"),
     db: Session = Depends(get_db)
 ) -> UserSchema:
     """
     現在のユーザーを取得する依存関数
 
     Args:
-        clerk_user_id (str): ClerkのユーザーID
+        clerk_user_id (str): ClerkのユーザーID（ヘッダーから取得）
         db (Session): データベースセッション
 
     Returns:

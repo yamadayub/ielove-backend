@@ -1,7 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException, Body
 from sqlalchemy.orm import Session
-from typing import List, Optional, Literal
-import app.schemas as schemas
+from typing import List, Optional
+from app.schemas.image_schemas import (
+    ImageSchema,
+    CreatePresignedUrlRequest,
+    CreatePresignedUrlResponse,
+    ImageStatus
+)
 from app.services.image_service import image_service
 from app.database import get_db
 
@@ -11,75 +16,52 @@ router = APIRouter(
 )
 
 
-@router.post("/presigned-url", summary="画像のアップロードURLを取得する")
+@router.post("/presigned-url", response_model=CreatePresignedUrlResponse, summary="画像のアップロードURLを取得する")
 def get_presigned_url(
-    file_data: dict = Body(..., example={
-        "file_name": "example.jpg",
-        "content_type": "image/jpeg"
-    }),
+    request: CreatePresignedUrlRequest,
     db: Session = Depends(get_db)
 ):
     """
     S3へのアップロード用のプリサインドURLを取得します。
+    画像のメタデータも同時に作成されます。
 
     Parameters:
-    - file_data: ファイル情報
+    - request: プリサインドURL生成リクエスト
         - file_name: ファイル名
         - content_type: ファイルのMIMEタイプ
+        - property_id: 物件ID（オプション）
+        - room_id: 部屋ID（オプション）
+        - product_id: 製品ID（オプション）
+        - image_type: 画像タイプ（main/sub/temp）
     """
-    try:
-        file_name = file_data.get("file_name")
-        content_type = file_data.get("content_type")
+    return image_service.get_upload_url(db, request)
 
-        if not file_name or not content_type:
-            raise HTTPException(
-                status_code=400,
-                detail="file_name and content_type are required"
-            )
 
-        return image_service.get_upload_url(db, file_name, content_type)
-    except Exception as e:
-        print(f"Error: {e}")
-        raise HTTPException(
-            status_code=400,
-            detail="リクエスト処理中にエラーが発生しました。"
-        )
+@router.patch("/{image_id}/status", response_model=ImageSchema, summary="画像のステータスを更新する")
+def update_image_status(
+    image_id: int,
+    status_data: dict = Body(..., example={"status": "completed"}),
+    db: Session = Depends(get_db)
+):
+    """
+    画像のステータスを更新します。
+    S3へのアップロード完了後に呼び出されることを想定しています。
+
+    Parameters:
+    - image_id: 画像ID
+    - status_data: 新しいステータス情報
+    """
+    status = ImageStatus(status_data["status"])
+    return image_service.update_image_status(db, image_id, status)
 
 
 @router.delete("/{image_id}", summary="画像を削除する")
-def delete_image(image_id: str, db: Session = Depends(get_db)):
+def delete_image(image_id: int, db: Session = Depends(get_db)):
     """指定されたIDの画像を削除する"""
     return image_service.delete_image(db, image_id)
 
 
-@router.post("/{image_id}/complete", summary="画像のアップロードを完了する")
-def complete_image_upload(
-    image_id: str,
-    property_id: Optional[int] = None,
-    room_id: Optional[int] = None,
-    product_id: Optional[int] = None,
-    db: Session = Depends(get_db)
-):
-    """
-    画像のアップロードを完了し、指定された各エンティティに関連付けます。
-    一つの画像を複数の階層（物件、部屋、製品）に同時に関連付けることができます。
-
-    Parameters:
-    - image_id: 画像ID
-    - property_id: 物件ID（オプション）
-    - room_id: 部屋ID（オプション）
-    - product_id: 製品ID（オプション）
-    """
-    return image_service.complete_upload(
-        db,
-        image_id,
-        property_id=property_id,
-        room_id=room_id,
-        product_id=product_id
-    )
-
-
-@router.get("", response_model=List[schemas.ImageSchema], summary="画像一覧を取得する")
+@router.get("", response_model=List[ImageSchema], summary="画像一覧を取得する")
 def get_images(
     property_id: Optional[int] = None,
     room_id: Optional[int] = None,
@@ -112,10 +94,44 @@ def get_images(
     )
 
 
-@router.get("/{image_id}", response_model=schemas.ImageSchema, summary="指定されたIDの画像を取得する")
-def get_image(image_id: str, db: Session = Depends(get_db)):
+@router.get("/{image_id}", response_model=ImageSchema, summary="指定されたIDの画像を取得する")
+def get_image(image_id: int, db: Session = Depends(get_db)):
     """指定されたIDの画像を取得する"""
     image = image_service.get_image(db, image_id)
     if not image:
         raise HTTPException(status_code=404, detail="Image not found")
     return image
+
+
+@router.patch("/{image_id}/set-main", response_model=ImageSchema, summary="画像をメインに設定する")
+def set_as_main_image(
+    image_id: int,
+    property_id: Optional[int] = None,
+    room_id: Optional[int] = None,
+    product_id: Optional[int] = None,
+    db: Session = Depends(get_db)
+):
+    """
+    指定された画像をメイン画像として設定します。
+    既存のメイン画像がある場合は、自動的にサブ画像に変更されます。
+    property_id, room_id, product_idのいずれか1つを指定する必要があります。
+
+    Parameters:
+    - image_id: 画像ID
+    - property_id: 物件ID（オプション）
+    - room_id: 部屋ID（オプション）
+    - product_id: 製品ID（オプション）
+    """
+    if sum(1 for x in [property_id, room_id, product_id] if x is not None) != 1:
+        raise HTTPException(
+            status_code=400,
+            detail="Exactly one of property_id, room_id, or product_id must be specified"
+        )
+
+    return image_service.set_as_main_image(
+        db,
+        image_id=image_id,
+        property_id=property_id,
+        room_id=room_id,
+        product_id=product_id
+    )

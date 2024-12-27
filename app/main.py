@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 from app.api.v1.api import api_router
+from app.middleware.logging import log_request_middleware
 
 app = FastAPI(
     title="ieLove API",
@@ -17,6 +18,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# ロギングミドルウェアの追加
+app.middleware("http")(log_request_middleware)
 
 # APIルーターの登録
 app.include_router(api_router, prefix="/api")

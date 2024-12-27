@@ -10,7 +10,6 @@ class RoomSchema(BaseModel):
     name: str
     description: Optional[str] = None
     property_id: int
-    created_at: datetime
 
     class Config:
         from_attributes = True

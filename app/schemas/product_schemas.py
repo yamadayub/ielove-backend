@@ -9,13 +9,14 @@ from .product_dimension_schemas import ProductDimensionSchema
 class ProductSchema(BaseModel):
     id: Optional[int] = None
     room_id: int
-    product_category_id: int
+    product_category_id: Optional[int] = None
+    product_category_name: Optional[str] = None
     manufacturer_id: Optional[int] = None
+    manufacturer_name: Optional[str] = None
     name: str
-    product_code: str
+    product_code: Optional[str] = None
     description: Optional[str] = None
     catalog_url: Optional[str] = None
-    created_at: datetime
 
     class Config:
         from_attributes = True

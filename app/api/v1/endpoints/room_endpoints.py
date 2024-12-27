@@ -18,12 +18,11 @@ router = APIRouter(
 
 @router.post("", response_model=RoomSchema, summary="部屋情報を作成する")
 def create_room(
-    property_id: int,
     room_data: RoomSchema,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: UserSchema = Depends(get_current_user)
 ):
     """物件に紐づく部屋情報を作成する"""
-    room_data.property_id = property_id
     return room_service.create_room(db, room_data)
 
 
@@ -38,7 +37,7 @@ def get_rooms(
     return room_service.get_rooms(db, property_id=property_id, skip=skip, limit=limit)
 
 
-@router.get("/{room_id}", response_model=RoomSchema, summary="部屋情報を作成する")
+@router.get("/{room_id}", response_model=RoomSchema, summary="部屋情報を取得する")
 def get_room(room_id: int, db: Session = Depends(get_db)):
     """指定されたIDの部屋を取得"""
     room = room_service.get_room(db, room_id)
@@ -47,7 +46,7 @@ def get_room(room_id: int, db: Session = Depends(get_db)):
     return room
 
 
-@router.patch("/rooms/{room_id}", response_model=RoomSchema, summary="部屋情報を更新する")
+@router.patch("/{room_id}", response_model=RoomSchema, summary="部屋情報を更新する")
 async def update_room(
     room_id: int,
     room_data: RoomSchema,
@@ -58,7 +57,7 @@ async def update_room(
     return await room_service.update_room(db, room_id, room_data)
 
 
-@router.delete("/rooms/{room_id}", response_model=None, summary="部屋を削除する")
+@router.delete("/{room_id}", response_model=None, summary="部屋を削除する")
 async def delete_room(
     room_id: int,
     db: Session = Depends(get_db),

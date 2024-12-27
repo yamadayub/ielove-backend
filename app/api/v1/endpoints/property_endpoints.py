@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Header
 from sqlalchemy.orm import Session
 from typing import List
 from app.schemas.property_schemas import (
@@ -9,6 +9,8 @@ from app.schemas.user_schemas import UserSchema
 from app.services.property_service import property_service
 from app.database import get_db
 from app.auth.dependencies import get_current_user
+from app.services.user_service import user_service
+from fastapi import status
 
 router = APIRouter(
     prefix="/properties",
@@ -19,20 +21,30 @@ router = APIRouter(
 @router.post("", response_model=PropertySchema, summary="物件情報を作成する")
 def create_property(
     property_data: PropertySchema,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: UserSchema = Depends(get_current_user)
 ):
     """物件の基本情報のみを作成する"""
-    return property_service.create_property(db, property_data)
+    property_data_dict = property_data.model_dump()
+    property_data_dict["user_id"] = current_user.id
+    return property_service.create_property(db, PropertySchema(**property_data_dict))
 
 
-@router.get("", response_model=List[PropertySchema], summary="物件一覧を取得する")
-def get_properties(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+@router.get("", response_model=List[PropertySchema], summary="物件一覧を取得す���")
+def get_properties(
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(get_db)
+):
     """物件一覧を取得"""
     return property_service.get_properties(db, skip=skip, limit=limit)
 
 
 @router.get("/{property_id}", response_model=PropertySchema, summary="指定されたIDの物件情報を取得する")
-def get_property(property_id: int, db: Session = Depends(get_db)):
+def get_property(
+    property_id: int,
+    db: Session = Depends(get_db)
+):
     """指定されたIDのproperties tableのデータを取得"""
     property = property_service.get_property(db, property_id)
     if not property:
@@ -68,9 +80,15 @@ def get_property_details(
 
 
 @router.post("/whole", response_model=int, summary="物件全体の情報を作成する")
-def create_property(property_data: PropertySchema, db: Session = Depends(get_db)):
+def create_property_whole(
+    property_data: PropertySchema,
+    db: Session = Depends(get_db),
+    current_user: UserSchema = Depends(get_current_user)
+):
     """物件の全情報を作成"""
-    return property_service.create_property_whole(db, property_data)
+    property_data_dict = property_data.model_dump()
+    property_data_dict["user_id"] = current_user.id
+    return property_service.create_property_whole(db, PropertySchema(**property_data_dict))
 
 
 @router.patch("/{property_id}", response_model=PropertySchema, summary="物件情報を更新する")

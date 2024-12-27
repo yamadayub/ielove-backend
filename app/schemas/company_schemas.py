@@ -1,11 +1,11 @@
-from typing import Optional, Literal
+from typing import Optional
 from pydantic import BaseModel
 
 
 class CompanySchema(BaseModel):
     id: Optional[int] = None
     name: str
-    company_type: Literal["manufacturer", "design", "construction"]
+    company_type: str
     description: Optional[str] = None
     website: Optional[str] = None
 

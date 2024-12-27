@@ -266,5 +266,23 @@ class ProductService:
             db.rollback()
             raise HTTPException(status_code=400, detail=str(e))
 
+    async def delete_product_dimension(self, db: Session, dimension_id: int):
+        """指定された寸法情報を削除する"""
+        db_dimension = db.query(ProductDimension).filter(
+            ProductDimension.id == dimension_id
+        ).first()
+
+        if not db_dimension:
+            raise HTTPException(
+                status_code=404, detail="Dimension not found")
+
+        try:
+            db.delete(db_dimension)
+            db.commit()
+            return {"message": "Dimension deleted successfully"}
+        except Exception as e:
+            db.rollback()
+            raise HTTPException(status_code=400, detail=str(e))
+
 
 product_service = ProductService()

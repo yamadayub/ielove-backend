@@ -21,7 +21,8 @@ engine = create_engine(
     pool_pre_ping=True,  # コネクションプールのヘルスチェック
     pool_size=5,  # コネクションプールのサイズ
     max_overflow=10,  # 最大オーバーフロー接続数
-    echo=settings.is_development,  # 開発環境の場合のみSQLログを出力
+    # echo=settings.is_development,  # 開発環境の場合のみSQLログを出力
+    echo=False
 )
 
 # セッションファクトリーの作成

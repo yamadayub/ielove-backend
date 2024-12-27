@@ -25,7 +25,7 @@ class ProductCRUD(BaseCRUD[Product, ProductSchema, ProductSchema]):
         return db_obj
 
     def update(self, db: Session, *, db_obj: Product, obj_in: ProductSchema) -> Product:
-        update_data = obj_in.dict(exclude_unset=True)
+        update_data = obj_in.model_dump(exclude_unset=True)
         for field, value in update_data.items():
             setattr(db_obj, field, value)
         db.add(db_obj)
@@ -50,19 +50,24 @@ class ProductCRUD(BaseCRUD[Product, ProductSchema, ProductSchema]):
     def get_products_by_room(self, db: Session, room_id: int, skip: int = 0, limit: int = 100):
         """
         指定された部屋IDに紐づく製品一覧を取得
-        product_categoryの情報も含める
+        product_categoryとmanufacturerの情報も含める
         """
         products = db.query(Product)\
-            .options(joinedload(Product.product_category))\
+            .options(
+                joinedload(Product.product_category),
+                joinedload(Product.manufacturer)
+        )\
             .filter(Product.room_id == room_id)\
             .offset(skip)\
             .limit(limit)\
             .all()
 
-        # 明示的にproduct_category_nameを設定
+        # 明示的にproduct_category_nameとmanufacturer_nameを設定
         for product in products:
             if product.product_category:
                 product.product_category_name = product.product_category.name
+            if product.manufacturer:
+                product.manufacturer_name = product.manufacturer.name
 
         return products
 

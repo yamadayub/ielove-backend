@@ -1,10 +1,13 @@
 from fastapi import APIRouter
 from app.api.v1.endpoints import (
+    product_endpoints,
     property_endpoints,
     room_endpoints,
-    product_endpoints,
     image_endpoints,
-    user_endpoints
+    user_endpoints,
+    company_endpoints,
+    spec_endpoints,
+    dimension_endpoints,
 )
 
 api_router = APIRouter()
@@ -15,3 +18,6 @@ api_router.include_router(room_endpoints.router)
 api_router.include_router(product_endpoints.router)
 api_router.include_router(image_endpoints.router)
 api_router.include_router(user_endpoints.router)
+api_router.include_router(company_endpoints.router)
+api_router.include_router(spec_endpoints.router)
+api_router.include_router(dimension_endpoints.router)

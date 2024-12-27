@@ -1,21 +1,22 @@
-from logging.config import fileConfig
+from app.config import get_settings
+from app.models import *  # This imports all models
+from app.database import Base
 import sys
 import os
+from logging.config import fileConfig
 from sqlalchemy import engine_from_config
 from sqlalchemy import pool
 from alembic import context
-from app.database import Base
-from app.models import *  # This imports all models
-from app.config import get_settings
 from dotenv import load_dotenv
+
+# このパスの追加はモジュールのインポートのために必要
+current_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, current_path)
 
 # .envファイルを読み込む
 load_dotenv()
 
-# このパスの追加はモジュールのインポートのために必要
-current_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-if current_path not in sys.path:
-    sys.path.insert(0, current_path)
+# これらのインポートは sys.path 設定の後に行う
 
 # Alembic Configオブジェクトを取得
 config = context.config
@@ -60,7 +61,7 @@ def run_migrations_offline() -> None:
 def run_migrations_online() -> None:
     """
     'online' モードでマイグレーションを実行
-    実際にデータベースに接続してマイグレーションを実行
+    実際��データベースに接続してマイグレーションを実行
     """
     # 最初に設定したURLを使用
     configuration = {

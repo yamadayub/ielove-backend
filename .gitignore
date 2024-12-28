@@ -24,3 +24,5 @@ venv/
 ENV/
 .idea/
 .vscode/
+.env*
+!.env.example

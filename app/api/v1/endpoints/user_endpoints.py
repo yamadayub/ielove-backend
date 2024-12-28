@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 import app.schemas as schemas
 from app.services.user_service import user_service
 from app.database import get_db
+from app.auth.dependencies import get_current_user
 
 router = APIRouter(
     prefix="/users",
@@ -11,28 +12,22 @@ router = APIRouter(
 
 
 @router.get("/me", response_model=schemas.UserSchema, summary="現在のユーザー情報を取得する")
-def get_current_user(clerk_user_id: str, db: Session = Depends(get_db)):
+def get_me(current_user: schemas.UserSchema = Depends(get_current_user)):
     """
     現在のユーザー情報を取得します。
-
-    Parameters:
-    - clerk_user_id: ClerkのユーザーID
     """
-    user = user_service.get_user_by_clerk_id(db, clerk_user_id)
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-    return user
+    return current_user
 
 
 @router.get("/me/seller", response_model=schemas.SellerProfileSchema, summary="現在のユーザーの販売者プロフィールを取得する")
-def get_seller_profile(user_id: str, db: Session = Depends(get_db)):
+def get_seller_profile(
+    db: Session = Depends(get_db),
+    current_user: schemas.UserSchema = Depends(get_current_user)
+):
     """
     現在のユーザーの販売者プロフィールを取得します。
-
-    Parameters:
-    - user_id: ユーザーID
     """
-    profile = user_service.get_seller_profile(db, user_id)
+    profile = user_service.get_seller_profile(db, current_user.id)
     if not profile:
         raise HTTPException(status_code=404, detail="Seller profile not found")
     return profile
@@ -45,7 +40,7 @@ def update_user(
     db: Session = Depends(get_db)
 ):
     """
-    ユ��ザー情報を更新します。
+    ユーザー情報を更新します。
 
     Parameters:
     - user_id: ユーザーID

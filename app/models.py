@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Text, Float, Boolean
+from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Text, Float, Boolean, JSON
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.database import Base
@@ -212,11 +212,12 @@ class SellerProfile(Base):
     tax_registration_number = Column(String, nullable=True)
 
     stripe_account_id = Column(String, unique=True, nullable=True)
-    stripe_account_status = Column(String, nullable=True, default='pending')
-    stripe_account_type = Column(String, nullable=True, default='standard')
+    stripe_account_status = Column(String, nullable=True, default="pending")
+    stripe_account_type = Column(String, nullable=True, default="standard")
     stripe_onboarding_completed = Column(Boolean, default=False)
     stripe_charges_enabled = Column(Boolean, default=False)
     stripe_payouts_enabled = Column(Boolean, default=False)
+    stripe_capabilities = Column(JSON, nullable=True)
 
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())

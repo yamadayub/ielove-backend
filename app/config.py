@@ -1,6 +1,7 @@
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 from functools import lru_cache
 from typing import Optional, List
+import os
 
 
 class Settings(BaseSettings):
@@ -16,6 +17,7 @@ class Settings(BaseSettings):
     AWS_S3_BUCKET: Optional[str] = None
     AWS_REGION: str = "ap-northeast-1"
 
+    # CORS設定
     CORS_ORIGINS: List[str] = [
         "http://localhost:5173",
         "http://localhost:5174",
@@ -26,9 +28,32 @@ class Settings(BaseSettings):
         "http://www.ie-love.com",
     ]
 
-    class Config:
-        env_file = ".env"
-        env_file_encoding = "utf-8"
+    # JWT設定
+    JWT_SECRET_KEY: Optional[str] = None
+    JWT_ALGORITHM: str = "HS256"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
+
+    # Clerk設定
+    CLERK_SECRET_KEY: Optional[str] = None
+    CLERK_PUBLISHABLE_KEY: Optional[str] = None
+
+    # Stripe設定
+    STRIPE_SECRET_KEY: Optional[str] = None
+    STRIPE_PUBLISHABLE_KEY: Optional[str] = None
+    STRIPE_WEBHOOK_SECRET: Optional[str] = None
+    STRIPE_CONNECT_CLIENT_ID: Optional[str] = None
+    STRIPE_CONNECT_RETURN_URL: str = "http://localhost:5173/mypage"
+    STRIPE_CONNECT_REFRESH_URL: str = "http://localhost:5173/mypage"
+
+    model_config = SettingsConfigDict(
+        # 環境変数から設定ファイルを決定
+        env_file=f".env.{os.getenv('ENVIRONMENT', 'development')}",
+        env_file_encoding="utf-8",
+        # 指定した.envファイルが存在しない場合は.envを使用
+        env_file_fallback=True,
+        # 大文字小文字を区別しない（環境変数は通常大文字）
+        case_sensitive=False
+    )
 
     @property
     def sqlalchemy_database_url(self) -> str:
@@ -65,6 +90,16 @@ class Settings(BaseSettings):
             self.AWS_ACCESS_KEY_ID,
             self.AWS_SECRET_ACCESS_KEY,
             self.AWS_S3_BUCKET
+        ])
+
+    @property
+    def stripe_configured(self) -> bool:
+        """Stripe認証情報が設定されているかどうかを返す"""
+        return all([
+            self.STRIPE_SECRET_KEY,
+            self.STRIPE_PUBLISHABLE_KEY,
+            self.STRIPE_WEBHOOK_SECRET,
+            self.STRIPE_CONNECT_CLIENT_ID
         ])
 
 

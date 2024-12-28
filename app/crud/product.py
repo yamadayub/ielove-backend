@@ -1,11 +1,11 @@
 from sqlalchemy.orm import Session, joinedload
 from app.models import Product
 from app.schemas import ProductSchema
-from .base import BaseCRUD
+from .base import CRUDBase
 from typing import Optional
 
 
-class ProductCRUD(BaseCRUD[Product, ProductSchema, ProductSchema]):
+class ProductCRUD(CRUDBase[Product, ProductSchema, ProductSchema]):
     def __init__(self):
         super().__init__(Product)
 

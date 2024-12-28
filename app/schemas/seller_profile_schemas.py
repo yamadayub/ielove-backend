@@ -1,11 +1,11 @@
+from typing import Optional, Dict
 from pydantic import BaseModel
 from datetime import datetime
-from typing import Optional
 
 
 class SellerProfileSchema(BaseModel):
     id: Optional[int] = None
-    user_id: int
+    user_id: Optional[int] = None
     company_name: Optional[str] = None
     representative_name: Optional[str] = None
     postal_code: Optional[str] = None
@@ -19,8 +19,16 @@ class SellerProfileSchema(BaseModel):
     stripe_onboarding_completed: bool = False
     stripe_charges_enabled: bool = False
     stripe_payouts_enabled: bool = False
-    created_at: Optional[datetime] = None
-    updated_at: Optional[datetime] = None
+    stripe_capabilities: Optional[Dict] = None
 
     class Config:
         from_attributes = True
+
+
+class StripeAccountLink(BaseModel):
+    url: str
+    expires_at: int
+
+
+class StripeDashboardLink(BaseModel):
+    url: str

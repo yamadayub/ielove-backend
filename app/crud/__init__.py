@@ -9,8 +9,6 @@ from .product_dimension import product_dimension
 from .user import user
 from .seller_profile import seller_profile
 from .listing_item import listing_item
-from .purchase import purchase
-from .sale import sale
 
 __all__ = [
     "company",
@@ -24,6 +22,4 @@ __all__ = [
     "user",
     "seller_profile",
     "listing_item",
-    "purchase",
-    "sale"
 ]

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Text, Float, Boolean, JSON, Enum
+from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Text, Float, Boolean, JSON, Enum, Index
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.database import Base
@@ -10,7 +10,12 @@ from app.enums import (
     ImageType,
     ListingType,
     ListingStatus,
-    Visibility
+    Visibility,
+    TransactionStatus,
+    PaymentStatus,
+    TransferStatus,
+    ChangeType,
+    ErrorType
 )
 
 
@@ -201,7 +206,81 @@ class User(Base):
     properties = relationship("Property", back_populates="user")
     seller_profile = relationship(
         "SellerProfile", back_populates="user", uselist=False)
-    purchases = relationship("Purchase", back_populates="buyer")
+    buyer_profile = relationship(
+        "BuyerProfile", back_populates="user", uselist=False)
+    buyer_transactions = relationship(
+        "Transaction", foreign_keys="[Transaction.buyer_id]", back_populates="buyer")
+    seller_transactions = relationship(
+        "Transaction", foreign_keys="[Transaction.seller_id]", back_populates="seller")
+
+
+class BuyerProfile(Base):
+    __tablename__ = "buyer_profiles"
+    __table_args__ = (
+        Index('ix_buyer_profiles_stripe_customer_id',
+              'stripe_customer_id', unique=True),
+    )
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"),
+                     unique=True, nullable=False)
+
+    # Stripe関連フィールド
+    stripe_customer_id = Column(String, unique=True, nullable=True)
+    default_payment_method_id = Column(String, nullable=True)
+    has_saved_payment_method = Column(Boolean, default=False)
+    last_payment_method_type = Column(String, nullable=True)
+
+    # 配送先情報
+    shipping_postal_code = Column(String, nullable=True)
+    shipping_prefecture = Column(String, nullable=True)
+    shipping_city = Column(String, nullable=True)
+    shipping_address1 = Column(String, nullable=True)
+    shipping_address2 = Column(String, nullable=True)
+    phone_number = Column(String, nullable=True)
+
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    # Relationships
+    user = relationship("User", back_populates="buyer_profile")
+    saved_payment_methods = relationship(
+        "SavedPaymentMethod", back_populates="buyer_profile", cascade="all, delete-orphan")
+    transactions = relationship(
+        "Transaction", back_populates="buyer", foreign_keys="[Transaction.buyer_id]")
+
+
+class SavedPaymentMethod(Base):
+    __tablename__ = "saved_payment_methods"
+    __table_args__ = (
+        Index('ix_saved_payment_methods_buyer_default',
+              'buyer_profile_id', 'is_default'),
+        Index('ix_saved_payment_methods_active_type',
+              'is_active', 'payment_type'),
+    )
+
+    id = Column(Integer, primary_key=True)
+    buyer_profile_id = Column(Integer, ForeignKey(
+        "buyer_profiles.id"), nullable=False)
+
+    # Stripe Payment Method情報
+    payment_method_id = Column(String, unique=True, nullable=False)
+    payment_type = Column(String, nullable=False)  # card, bank_transfer等
+
+    # クレジットカード情報（最小限）
+    card_brand = Column(String, nullable=True)  # visa, mastercard等
+    card_last4 = Column(String, nullable=True)
+    card_exp_month = Column(Integer, nullable=True)
+    card_exp_year = Column(Integer, nullable=True)
+
+    is_default = Column(Boolean, default=False)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    # Relationships
+    buyer_profile = relationship(
+        "BuyerProfile", back_populates="saved_payment_methods")
 
 
 class SellerProfile(Base):
@@ -229,34 +308,21 @@ class SellerProfile(Base):
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
     user = relationship("User", back_populates="seller_profile")
-    sales = relationship("Sale", back_populates="seller")
     listings = relationship("ListingItem", back_populates="seller")
-
-
-class Purchase(Base):
-    __tablename__ = "purchases"
-
-    id = Column(Integer, primary_key=True)
-    buyer_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    listing_item_id = Column(Integer,
-                             ForeignKey("listing_items.id"),
-                             nullable=False)
-    amount = Column(Integer, nullable=False)
-    status = Column(String, nullable=False, default='pending')
-
-    stripe_payment_intent_id = Column(String, nullable=True, unique=True)
-    stripe_payment_status = Column(String, nullable=True)
-    stripe_transfer_id = Column(String, nullable=True, unique=True)
-
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
-
-    buyer = relationship("User", back_populates="purchases")
-    listing_item = relationship("ListingItem", back_populates="purchases")
+    transactions = relationship(
+        "Transaction", back_populates="seller", foreign_keys="[Transaction.seller_id]")
 
 
 class ListingItem(Base):
     __tablename__ = "listing_items"
+    __table_args__ = (
+        Index('ix_listing_items_status_visibility', 'status', 'visibility'),
+        Index('ix_listing_items_price', 'price'),
+        Index('ix_listing_items_seller_created', 'seller_id', 'created_at'),
+        Index('ix_listing_items_property_status', 'property_id', 'status'),
+        Index('ix_listing_items_room_status', 'room_id', 'status'),
+        Index('ix_listing_items_product_status', 'product_id', 'status'),
+    )
 
     id = Column(Integer, primary_key=True)
     seller_id = Column(Integer, ForeignKey(
@@ -268,15 +334,8 @@ class ListingItem(Base):
     property_id = Column(Integer, ForeignKey("properties.id"), nullable=True)
     room_id = Column(Integer, ForeignKey("rooms.id"), nullable=True)
     product_id = Column(Integer, ForeignKey("products.id"), nullable=True)
-
-    # 販売条件
     is_negotiable = Column(Boolean, default=False)
-
-    # サービス関連情報
-    # consultation_typeをservice_typeに変更
     service_type = Column(String, nullable=True)
-    # ENUM: 'online', 'offline', 'both'
-    # consultation_minutesをservice_durationに
     service_duration = Column(Integer, nullable=True)
     is_featured = Column(Boolean, default=False)
     visibility = Column(Enum(Visibility), default=Visibility.PUBLIC)
@@ -285,40 +344,105 @@ class ListingItem(Base):
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     published_at = Column(DateTime(timezone=True), nullable=True)
 
-    # リレーション
     seller = relationship("SellerProfile", back_populates="listings")
     property = relationship("Property", back_populates="listings")
     room = relationship("Room", back_populates="listings")
     product = relationship("Product", back_populates="listings")
-    purchases = relationship("Purchase", back_populates="listing_item")
-    sales = relationship("Sale", back_populates="listing_item")
+    transactions = relationship("Transaction", back_populates="listing")
 
 
-class Sale(Base):
-    __tablename__ = "sales"
+class Transaction(Base):
+    __tablename__ = "transactions"
+    __table_args__ = (
+        Index('ix_transactions_created_at', 'created_at'),
+        Index('ix_transactions_transaction_status', 'transaction_status'),
+        Index('ix_transactions_payment_transfer_status',
+              'payment_status', 'transfer_status'),
+        Index('ix_transactions_buyer_created', 'buyer_id', 'created_at'),
+        Index('ix_transactions_seller_created', 'seller_id', 'created_at'),
+    )
 
     id = Column(Integer, primary_key=True)
-    seller_id = Column(Integer,
-                       ForeignKey("seller_profiles.id"),
-                       nullable=False)
-    listing_item_id = Column(Integer,
-                             ForeignKey("listing_items.id"),
-                             nullable=False)
-    purchase_id = Column(Integer,
-                         ForeignKey("purchases.id"),
-                         nullable=False,
-                         unique=True)
-    amount = Column(Integer, nullable=False)
+    buyer_id = Column(Integer, ForeignKey("buyer_profiles.id"), nullable=False)
+    seller_id = Column(Integer, ForeignKey(
+        "seller_profiles.id"), nullable=False)
+    listing_id = Column(Integer, ForeignKey(
+        "listing_items.id"), nullable=False)
+    payment_intent_id = Column(String, nullable=False)
+    total_amount = Column(Integer, nullable=False)
     platform_fee = Column(Integer, nullable=False)
     seller_amount = Column(Integer, nullable=False)
-    status = Column(String, nullable=False, default='pending')
+    transaction_status = Column(
+        Enum(TransactionStatus), nullable=False, default=TransactionStatus.PENDING)
+    payment_status = Column(Enum(PaymentStatus),
+                            nullable=False, default=PaymentStatus.PENDING)
+    transfer_status = Column(Enum(TransferStatus),
+                             nullable=False, default=TransferStatus.PENDING)
 
-    stripe_transfer_id = Column(String, nullable=True, unique=True)
-    stripe_transfer_status = Column(String, nullable=True)
+    # エラー関連フィールド
+    last_error_at = Column(DateTime(timezone=True), nullable=True)
+    error_count = Column(Integer, default=0, nullable=False)
+    has_unresolved_error = Column(Boolean, default=False, nullable=False)
 
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
-    seller = relationship("SellerProfile", back_populates="sales")
-    listing_item = relationship("ListingItem", back_populates="sales")
-    purchase = relationship("Purchase", backref="sale")
+    # Relationships
+    buyer = relationship("BuyerProfile", foreign_keys=[
+                         buyer_id], back_populates="transactions")
+    seller = relationship("SellerProfile", foreign_keys=[
+                          seller_id], back_populates="transactions")
+    listing = relationship("ListingItem", back_populates="transactions")
+    audit_logs = relationship(
+        "TransactionAuditLog", back_populates="transaction", cascade="all, delete-orphan")
+    error_logs = relationship(
+        "TransactionErrorLog", back_populates="transaction", cascade="all, delete-orphan")
+
+
+class TransactionAuditLog(Base):
+    __tablename__ = "transaction_audit_logs"
+
+    id = Column(Integer, primary_key=True)
+    transaction_id = Column(Integer, ForeignKey(
+        "transactions.id"), nullable=False)
+    field_name = Column(String, nullable=False)
+    old_value = Column(String, nullable=True)
+    new_value = Column(String, nullable=True)
+    changed_by_user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    change_type = Column(Enum(ChangeType), nullable=False)
+    change_reason = Column(Text, nullable=True)
+    change_metadata = Column(JSON, nullable=True)
+    timestamp = Column(DateTime(timezone=True),
+                       server_default=func.now(), nullable=False)
+
+    # Relationships
+    transaction = relationship("Transaction", back_populates="audit_logs")
+    changed_by_user = relationship("User", backref="transaction_changes")
+
+
+class TransactionErrorLog(Base):
+    __tablename__ = "transaction_error_logs"
+    __table_args__ = (
+        Index('ix_transaction_error_logs_transaction_error_type',
+              'transaction_id', 'error_type'),
+        Index('ix_transaction_error_logs_created_at', 'created_at'),
+        Index('ix_transaction_error_logs_is_resolved_error_type',
+              'is_resolved', 'error_type'),
+    )
+
+    id = Column(Integer, primary_key=True)
+    transaction_id = Column(Integer, ForeignKey(
+        "transactions.id"), nullable=False)
+    error_type = Column(Enum(ErrorType), nullable=False)
+    error_code = Column(String, nullable=False)
+    error_message = Column(Text, nullable=False)
+    error_details = Column(JSON, nullable=True)
+    retry_count = Column(Integer, default=0, nullable=False)
+    is_resolved = Column(Boolean, default=False, nullable=False)
+    resolved_at = Column(DateTime(timezone=True), nullable=True)
+    resolution_notes = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True),
+                        server_default=func.now(), nullable=False)
+
+    # Relationships
+    transaction = relationship("Transaction", back_populates="error_logs")

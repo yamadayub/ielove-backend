@@ -136,3 +136,85 @@ class Visibility(BaseEnum):
             "PUBLIC": "公開",
             "PRIVATE": "非公開"
         }
+
+
+class TransactionStatus(BaseEnum):
+    PENDING = "PENDING"
+    CONFIRMED = "CONFIRMED"
+    COMPLETED = "COMPLETED"
+    CANCELLED = "CANCELLED"
+    REFUNDED = "REFUNDED"
+
+    @classmethod
+    def labels(cls) -> Dict[str, str]:
+        return {
+            "PENDING": "取引開始",
+            "CONFIRMED": "取引確定",
+            "COMPLETED": "取引完了",
+            "CANCELLED": "取引キャンセル",
+            "REFUNDED": "返金済み"
+        }
+
+
+class PaymentStatus(BaseEnum):
+    PENDING = "PENDING"
+    PROCESSING = "PROCESSING"
+    SUCCEEDED = "SUCCEEDED"
+    FAILED = "FAILED"
+    REFUNDED = "REFUNDED"
+
+    @classmethod
+    def labels(cls) -> Dict[str, str]:
+        return {
+            "PENDING": "支払い待ち",
+            "PROCESSING": "処理中",
+            "SUCCEEDED": "支払い完了",
+            "FAILED": "支払い失敗",
+            "REFUNDED": "返金済み"
+        }
+
+
+class TransferStatus(BaseEnum):
+    PENDING = "PENDING"
+    PROCESSING = "PROCESSING"
+    SUCCEEDED = "SUCCEEDED"
+    FAILED = "FAILED"
+
+    @classmethod
+    def labels(cls) -> Dict[str, str]:
+        return {
+            "PENDING": "送金待ち",
+            "PROCESSING": "処理中",
+            "SUCCEEDED": "送金完了",
+            "FAILED": "送金失敗"
+        }
+
+
+class ChangeType(BaseEnum):
+    SYSTEM = "SYSTEM"
+    USER = "USER"
+    WEBHOOK = "WEBHOOK"
+
+    @classmethod
+    def labels(cls) -> Dict[str, str]:
+        return {
+            "SYSTEM": "システム変更",
+            "USER": "ユーザー変更",
+            "WEBHOOK": "Webhook変更"
+        }
+
+
+class ErrorType(BaseEnum):
+    STRIPE_PAYMENT_ERROR = "STRIPE_PAYMENT_ERROR"
+    STRIPE_TRANSFER_ERROR = "STRIPE_TRANSFER_ERROR"
+    VALIDATION_ERROR = "VALIDATION_ERROR"
+    SYSTEM_ERROR = "SYSTEM_ERROR"
+
+    @classmethod
+    def labels(cls) -> Dict[str, str]:
+        return {
+            "STRIPE_PAYMENT_ERROR": "Stripe決済エラー",
+            "STRIPE_TRANSFER_ERROR": "Stripe送金エラー",
+            "VALIDATION_ERROR": "バリデーションエラー",
+            "SYSTEM_ERROR": "システムエラー"
+        }

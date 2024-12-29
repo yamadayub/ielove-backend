@@ -18,8 +18,7 @@ from .company_schemas import CompanySchema
 from .product_category_schemas import ProductCategorySchema
 from .seller_profile_schemas import SellerProfileSchema
 from .product_for_sale_schemas import ProductForSaleSchema
-from .purchase_schemas import PurchaseSchema
-from .sale_schemas import SaleSchema
+from .transaction_schemas import TransactionSchema
 
 __all__ = [
     "PropertySchema",
@@ -37,6 +36,5 @@ __all__ = [
     "SellerProfileSchema",
     "CompanySchema",
     "ProductForSaleSchema",
-    "PurchaseSchema",
-    "SaleSchema"
+    "TransactionSchema"
 ]

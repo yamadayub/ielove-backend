@@ -42,8 +42,8 @@ class Settings(BaseSettings):
     STRIPE_PUBLISHABLE_KEY: Optional[str] = None
     STRIPE_WEBHOOK_SECRET: Optional[str] = None
     STRIPE_CONNECT_CLIENT_ID: Optional[str] = None
-    STRIPE_CONNECT_RETURN_URL: str = "http://localhost:5173/mypage"
-    STRIPE_CONNECT_REFRESH_URL: str = "http://localhost:5173/mypage"
+    STRIPE_CONNECT_RETURN_URL: str = "http://localhost:5173/seller/onboarding/complete"
+    STRIPE_CONNECT_REFRESH_URL: str = "http://localhost:5173/seller/onboarding"
 
     model_config = SettingsConfigDict(
         # 環境変数から設定ファイルを決定

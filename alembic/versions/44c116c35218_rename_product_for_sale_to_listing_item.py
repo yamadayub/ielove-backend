@@ -1,7 +1,7 @@
 """rename_product_for_sale_to_listing_item
 
 Revision ID: 44c116c35218
-Revises: c98fdc7057d4
+Revises: cf254705a790
 Create Date: 2024-12-28 23:21:47.654724
 
 """
@@ -13,7 +13,7 @@ from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
 revision: str = '44c116c35218'
-down_revision: Union[str, None] = 'c98fdc7057d4'
+down_revision: Union[str, None] = 'cf254705a790'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

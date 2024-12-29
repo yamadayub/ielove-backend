@@ -38,7 +38,7 @@ def upgrade() -> None:
 
     # StructureType
     op.execute("ALTER TABLE properties ALTER COLUMN structure TYPE VARCHAR")
-    op.execute("DROP TYPE structuretype")
+    op.execute("DROP TYPE structure")  # structuretype から structure に修正
     op.execute(
         "CREATE TYPE structuretype AS ENUM ('WOODEN', 'STEEL_FRAME', 'RC', 'SRC', 'LIGHT_STEEL')")
     op.execute("UPDATE properties SET structure = UPPER(structure)")

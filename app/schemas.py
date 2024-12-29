@@ -1,6 +1,7 @@
 from typing import Optional, List, Literal
 from pydantic import BaseModel, ConfigDict, model_validator
 from datetime import datetime
+from app.schemas.image_schemas import ImageSchema
 
 
 class UserSchema(BaseModel):
@@ -141,24 +142,6 @@ class ProductBase(BaseModel):
 
 class ProductCreate(ProductBase):
     room_id: int
-
-
-class ImageBase(BaseModel):
-    url: str
-    description: Optional[str] = None
-    image_type: Literal["main", "sub", "temp"]
-    property_id: Optional[int] = None
-    room_id: Optional[int] = None
-    product_id: Optional[int] = None
-    s3_key: Optional[str] = None
-
-
-class ImageCreate(ImageBase):
-    id: str
-
-
-class ImageSchema(ImageBase):
-    id: Optional[int] = None
 
 
 class ProductSchema(BaseModel):

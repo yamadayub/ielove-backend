@@ -10,9 +10,9 @@ class ImageStatus(str, Enum):
 
 
 class ImageType(str, Enum):
-    MAIN = 'main'
-    SUB = 'sub'
-    TEMP = 'temp'
+    MAIN = 'MAIN'
+    SUB = 'SUB'
+    PAID = 'PAID'
 
 
 class CreatePresignedUrlRequest(BaseModel):
@@ -21,7 +21,7 @@ class CreatePresignedUrlRequest(BaseModel):
     property_id: Optional[int] = None
     room_id: Optional[int] = None
     product_id: Optional[int] = None
-    image_type: ImageType = ImageType.TEMP
+    image_type: ImageType = ImageType.SUB
     description: Optional[str] = None
 
 
@@ -49,7 +49,7 @@ class ImageSchema(BaseModel):
     property_id: Optional[int] = None
     room_id: Optional[int] = None
     product_id: Optional[int] = None
-    image_type: ImageType = ImageType.TEMP
+    image_type: ImageType = ImageType.SUB
     status: ImageStatus = ImageStatus.PENDING
     created_at: Optional[datetime] = None
 

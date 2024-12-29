@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Header
+from fastapi import APIRouter, Depends, HTTPException, Header, Query
 from sqlalchemy.orm import Session
 from typing import List
 from app.schemas.property_schemas import (
@@ -10,7 +10,7 @@ from app.services.property_service import property_service
 from app.database import get_db
 from app.auth.dependencies import get_current_user
 from app.services.user_service import user_service
-from fastapi import status
+from fastapi import status, Response
 
 router = APIRouter(
     prefix="/properties",
@@ -30,7 +30,7 @@ def create_property(
     return property_service.create_property(db, PropertySchema(**property_data_dict))
 
 
-@router.get("", response_model=List[PropertySchema], summary="物件一覧を取得す���")
+@router.get("", response_model=List[PropertySchema], summary="物件一覧を取得する")
 def get_properties(
     skip: int = 0,
     limit: int = 100,
@@ -114,5 +114,34 @@ async def delete_property(
 ):
     """指定されたIDの物件を削除します。"""
     return await property_service.delete_property(db, property_id)
+
+
+@router.get("/by-user/{user_id}", response_model=List[PropertySchema])
+def get_properties_by_user(
+    user_id: int,
+    response: Response,
+    db: Session = Depends(get_db),
+    skip: int = Query(0, ge=0),
+    limit: int = Query(10, ge=1, le=100),
+    property_type: str = None,
+    prefecture: str = None
+):
+    """指定されたユーザーIDの物件一覧を取得"""
+    filters = {}
+    if property_type:
+        filters["property_type"] = property_type
+    if prefecture:
+        filters["prefecture"] = prefecture
+
+    items, total = property_service.get_properties_by_user(
+        db=db,
+        user_id=user_id,
+        skip=skip,
+        limit=limit,
+        filters=filters
+    )
+
+    response.headers["X-Total-Count"] = str(total)
+    return items
 
 # ... 他の物件関連エンドポイント

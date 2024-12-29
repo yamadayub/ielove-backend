@@ -1,4 +1,4 @@
-from typing import Optional, List, Literal
+from typing import Optional, List, Literal, Dict, Any, Tuple
 from sqlalchemy.orm import Session, joinedload
 from app.models import Property, Room, Product, ProductSpecification, ProductDimension
 from app.crud.property import property as property_crud
@@ -249,6 +249,35 @@ class PropertyService:
         except Exception as e:
             db.rollback()
             raise HTTPException(status_code=400, detail=str(e))
+
+    def get_properties_by_user(
+        self,
+        db: Session,
+        user_id: int,
+        skip: int = 0,
+        limit: int = 10,
+        filters: Dict[str, Any] = None
+    ) -> Tuple[List[Property], int]:
+        """
+        指定されたユーザーIDの物件一覧を取得する
+
+        Args:
+            db: データベースセッション
+            user_id: ユーザーID
+            skip: スキップする件数
+            limit: 取得する最大件数
+            filters: フィルター条件
+
+        Returns:
+            Tuple[List[Property], int]: 物件リストと総件数のタプル
+        """
+        return property_crud.get_by_user_with_filters(
+            db=db,
+            user_id=user_id,
+            skip=skip,
+            limit=limit,
+            filters=filters
+        )
 
 
 property_service = PropertyService()

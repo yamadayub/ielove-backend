@@ -1,7 +1,17 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Text, Float, Boolean, JSON
+from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Text, Float, Boolean, JSON, Enum
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.database import Base
+from app.enums import (
+    CompanyType,
+    PropertyType,
+    StructureType,
+    DimensionType,
+    ImageType,
+    ListingType,
+    ListingStatus,
+    Visibility
+)
 
 
 class Company(Base):
@@ -9,8 +19,7 @@ class Company(Base):
 
     id = Column(Integer, primary_key=True)
     name = Column(String, nullable=False)
-    company_type = Column(String,
-                          nullable=False)  # manufacturer, design, construction
+    company_type = Column(Enum(CompanyType), nullable=False)
     description = Column(Text)
     website = Column(String)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
@@ -33,7 +42,7 @@ class Property(Base):
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     name = Column(String, nullable=False)
     description = Column(Text)
-    property_type = Column(String, nullable=False)  # house, apartment, other
+    property_type = Column(Enum(PropertyType), nullable=False)
     prefecture = Column(String, nullable=False)
     layout = Column(String)
     construction_year = Column(Integer)
@@ -41,13 +50,11 @@ class Property(Base):
     site_area = Column(Float)
     building_area = Column(Float)
     floor_count = Column(Integer)
-    structure = Column(String)
-    design_company_id = Column(Integer,
-                               ForeignKey("companies.id"),
-                               nullable=True)
-    construction_company_id = Column(Integer,
-                                     ForeignKey("companies.id"),
-                                     nullable=True)
+    structure = Column(Enum(StructureType))
+    design_company_id = Column(
+        Integer, ForeignKey("companies.id"), nullable=True)
+    construction_company_id = Column(
+        Integer, ForeignKey("companies.id"), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     user = relationship("User", back_populates="properties")
@@ -58,14 +65,11 @@ class Property(Base):
         "Company",
         back_populates="constructed_properties",
         foreign_keys=[construction_company_id])
-    rooms = relationship("Room",
-                         back_populates="property",
+    rooms = relationship("Room", back_populates="property",
                          cascade="all, delete-orphan")
-    images = relationship("Image",
-                          back_populates="property",
+    images = relationship("Image", back_populates="property",
                           cascade="all, delete-orphan")
-    products_for_sale = relationship("ProductForSale",
-                                     back_populates="property")
+    listings = relationship("ListingItem", back_populates="property")
 
 
 class Room(Base):
@@ -84,6 +88,7 @@ class Room(Base):
     images = relationship("Image",
                           back_populates="room",
                           cascade="all, delete-orphan")
+    listings = relationship("ListingItem", back_populates="room")
 
 
 class ProductCategory(Base):
@@ -127,6 +132,7 @@ class Product(Base):
     images = relationship("Image",
                           back_populates="product",
                           cascade="all, delete-orphan")
+    listings = relationship("ListingItem", back_populates="product")
 
 
 class ProductSpecification(Base):
@@ -151,7 +157,7 @@ class ProductDimension(Base):
 
     id = Column(Integer, primary_key=True)
     product_id = Column(Integer, ForeignKey("products.id"), nullable=False)
-    dimension_type = Column(String, nullable=False)
+    dimension_type = Column(Enum(DimensionType), nullable=False)
     value = Column(Float, nullable=False)
     unit = Column(String, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
@@ -169,7 +175,7 @@ class Image(Base):
     property_id = Column(Integer, ForeignKey("properties.id"), nullable=True)
     room_id = Column(Integer, ForeignKey("rooms.id"), nullable=True)
     product_id = Column(Integer, ForeignKey("products.id"), nullable=True)
-    image_type = Column(String, nullable=True)
+    image_type = Column(Enum(ImageType), nullable=True)
     status = Column(String, nullable=False, default='pending')
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
@@ -224,7 +230,7 @@ class SellerProfile(Base):
 
     user = relationship("User", back_populates="seller_profile")
     sales = relationship("Sale", back_populates="seller")
-    products_for_sale = relationship("ProductForSale", back_populates="seller")
+    listings = relationship("ListingItem", back_populates="seller")
 
 
 class Purchase(Base):
@@ -232,9 +238,9 @@ class Purchase(Base):
 
     id = Column(Integer, primary_key=True)
     buyer_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    product_for_sale_id = Column(Integer,
-                                 ForeignKey("products_for_sale.id"),
-                                 nullable=False)
+    listing_item_id = Column(Integer,
+                             ForeignKey("listing_items.id"),
+                             nullable=False)
     amount = Column(Integer, nullable=False)
     status = Column(String, nullable=False, default='pending')
 
@@ -246,38 +252,46 @@ class Purchase(Base):
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
     buyer = relationship("User", back_populates="purchases")
+    listing_item = relationship("ListingItem", back_populates="purchases")
 
 
-class ProductForSale(Base):
-    __tablename__ = "products_for_sale"
+class ListingItem(Base):
+    __tablename__ = "listing_items"
 
     id = Column(Integer, primary_key=True)
-    seller_id = Column(Integer,
-                       ForeignKey("seller_profiles.id"),
-                       nullable=False)
-    name = Column(String, nullable=False)
+    seller_id = Column(Integer, ForeignKey(
+        "seller_profiles.id"), nullable=False)
+    title = Column(String, nullable=False)
     description = Column(Text)
     price = Column(Integer, nullable=False)
-    sale_type = Column(String,
-                       nullable=False)  # property, room, product, consultation
-    consultation_type = Column(String, nullable=True)  # online, offline
-    status = Column(String, default='draft')  # draft, published, sold
-
+    listing_type = Column(Enum(ListingType), nullable=False)
     property_id = Column(Integer, ForeignKey("properties.id"), nullable=True)
     room_id = Column(Integer, ForeignKey("rooms.id"), nullable=True)
     product_id = Column(Integer, ForeignKey("products.id"), nullable=True)
 
+    # 販売条件
     is_negotiable = Column(Boolean, default=False)
-    consultation_minutes = Column(Integer, nullable=True)
 
+    # サービス関連情報
+    # consultation_typeをservice_typeに変更
+    service_type = Column(String, nullable=True)
+    # ENUM: 'online', 'offline', 'both'
+    # consultation_minutesをservice_durationに
+    service_duration = Column(Integer, nullable=True)
+    is_featured = Column(Boolean, default=False)
+    visibility = Column(Enum(Visibility), default=Visibility.PUBLIC)
+    status = Column(Enum(ListingStatus), default=ListingStatus.DRAFT)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    published_at = Column(DateTime(timezone=True), nullable=True)
 
-    seller = relationship("SellerProfile", back_populates="products_for_sale")
-    property = relationship("Property")
-    room = relationship("Room")
-    product = relationship("Product")
-    sales = relationship("Sale", back_populates="product_for_sale")
+    # リレーション
+    seller = relationship("SellerProfile", back_populates="listings")
+    property = relationship("Property", back_populates="listings")
+    room = relationship("Room", back_populates="listings")
+    product = relationship("Product", back_populates="listings")
+    purchases = relationship("Purchase", back_populates="listing_item")
+    sales = relationship("Sale", back_populates="listing_item")
 
 
 class Sale(Base):
@@ -287,9 +301,9 @@ class Sale(Base):
     seller_id = Column(Integer,
                        ForeignKey("seller_profiles.id"),
                        nullable=False)
-    product_for_sale_id = Column(Integer,
-                                 ForeignKey("products_for_sale.id"),
-                                 nullable=False)
+    listing_item_id = Column(Integer,
+                             ForeignKey("listing_items.id"),
+                             nullable=False)
     purchase_id = Column(Integer,
                          ForeignKey("purchases.id"),
                          nullable=False,
@@ -306,5 +320,5 @@ class Sale(Base):
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
     seller = relationship("SellerProfile", back_populates="sales")
-    product_for_sale = relationship("ProductForSale", back_populates="sales")
+    listing_item = relationship("ListingItem", back_populates="sales")
     purchase = relationship("Purchase", backref="sale")

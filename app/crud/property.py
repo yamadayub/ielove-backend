@@ -1,9 +1,9 @@
-
 from sqlalchemy.orm import Session
 from app.models import Property
 from app.schemas import PropertySchema
 from .base import BaseCRUD
-from typing import List, Optional
+from typing import List, Optional, Dict, Any, Tuple
+from sqlalchemy.sql import desc
 
 
 class PropertyCRUD(BaseCRUD[Property, PropertySchema, PropertySchema]):
@@ -66,6 +66,43 @@ class PropertyCRUD(BaseCRUD[Property, PropertySchema, PropertySchema]):
             Optional[Property]: 物件オブジェクト。存在しない場合はNone
         """
         return db.query(Property).filter(Property.id == id).first()
+
+    def get_by_user_with_filters(
+        self,
+        db: Session,
+        user_id: int,
+        skip: int = 0,
+        limit: int = 100,
+        filters: Dict[str, Any] = None
+    ) -> Tuple[List[Property], int]:
+        """
+        指定されたユーザーIDの物件一覧をフィルター条件付きで取得する
+
+        Args:
+            db: データベースセッション
+            user_id: ユーザーID
+            skip: スキップする件数
+            limit: 取得する最大件数
+            filters: フィルター条件
+
+        Returns:
+            Tuple[List[Property], int]: 物件リストと総件数のタプル
+        """
+        query = db.query(self.model).filter(self.model.user_id == user_id)
+
+        if filters:
+            if filters.get("property_type"):
+                query = query.filter(
+                    self.model.property_type == filters["property_type"])
+            if filters.get("prefecture"):
+                query = query.filter(
+                    self.model.prefecture == filters["prefecture"])
+
+        total = query.count()
+        items = query.order_by(desc(self.model.created_at)).offset(
+            skip).limit(limit).all()
+
+        return items, total
 
 
 property = PropertyCRUD()

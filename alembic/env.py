@@ -1,34 +1,27 @@
-from app.config import get_settings
-from app.models import *  # This imports all models
 from app.database import Base
-import sys
-import os
+from app.config import get_settings
 from logging.config import fileConfig
 from sqlalchemy import engine_from_config
 from sqlalchemy import pool
 from alembic import context
-from dotenv import load_dotenv
+from sqlalchemy import create_engine
+import os
+import sys
 
 # このパスの追加はモジュールのインポートのために必要
 current_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, current_path)
 
-# .envファイルを読み込む
-load_dotenv()
-
-# これらのインポートは sys.path 設定の後に行う
-
-# Alembic Configオブジェクトを取得
-config = context.config
 
 # 環境設定を取得とURL調整
 settings = get_settings()
 database_url = settings.sqlalchemy_database_url
-print(f"Original database_url: {database_url}")
 
 if database_url.startswith('postgres://'):
     database_url = database_url.replace('postgres://', 'postgresql://')
-    print(f"Modified database_url: {database_url}")
+
+# Alembic Configオブジェクトを取得
+config = context.config
 
 # sqlalchemy.urlを環境変数から取得したURLで上書き
 config.set_main_option("sqlalchemy.url", database_url)
@@ -61,22 +54,18 @@ def run_migrations_offline() -> None:
 def run_migrations_online() -> None:
     """
     'online' モードでマイグレーションを実行
-    実際��データベースに接続してマイグレーションを実行
+    実際にデータベースに接続してマイグレーションを実行
     """
     # 最初に設定したURLを使用
-    configuration = {
-        'sqlalchemy.url': database_url,
-        **config.get_section(config.config_ini_section, {})
-    }
-    print(f"Final configuration: {configuration}")
-
-    connectable = engine_from_config(
-        configuration,
-        prefix="sqlalchemy.",
-        poolclass=pool.NullPool,
+    engine = create_engine(
+        database_url,
+        pool_pre_ping=True,
+        pool_size=5,
+        max_overflow=10,
+        echo=False
     )
 
-    with connectable.connect() as connection:
+    with engine.connect() as connection:
         context.configure(
             connection=connection,
             target_metadata=target_metadata,

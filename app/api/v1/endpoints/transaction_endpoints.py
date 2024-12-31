@@ -18,7 +18,6 @@ from app.schemas.transaction_schemas import (
 from app.schemas.checkout_schemas import CheckoutSessionCreate, CheckoutSessionResponse
 from app.services.stripe_service import stripe_service, WebhookType
 from app.services.buyer_profile_service import buyer_profile_service
-from app.services.transaction_service import transaction_service
 
 router = APIRouter(prefix="/transactions", tags=["transactions"])
 

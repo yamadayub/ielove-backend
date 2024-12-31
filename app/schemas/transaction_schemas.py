@@ -1,6 +1,6 @@
 from datetime import datetime
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, List
 
 from app.enums import TransactionStatus, PaymentStatus, TransferStatus
 from app.schemas.user_schemas import UserSchema
@@ -26,6 +26,47 @@ class TransactionSchema(BaseModel):
     buyer: Optional[UserSchema] = None
     seller: Optional[UserSchema] = None
     listing: Optional[ListingItem] = None
+
+    class Config:
+        from_attributes = True
+
+
+class TransactionInfo(BaseModel):
+    transactionId: int
+    purchaseDate: str
+    amount: int
+
+    class Config:
+        from_attributes = True
+
+
+class PropertyInfo(BaseModel):
+    id: int
+    name: str
+    prefecture: str
+
+
+class ListingInfo(BaseModel):
+    id: int
+    title: str
+    price: int
+
+
+class PurchasedTransaction(BaseModel):
+    id: int
+    purchaseDate: datetime
+    totalAmount: int
+    listing: ListingInfo
+    property: PropertyInfo
+
+
+class PurchasedTransactionsResponse(BaseModel):
+    transactions: List[PurchasedTransaction]
+
+
+class TransactionCheckResponse(BaseModel):
+    isPurchased: bool
+    purchaseInfo: Optional[dict] = None
 
     class Config:
         from_attributes = True

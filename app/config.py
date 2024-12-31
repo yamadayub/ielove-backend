@@ -45,6 +45,9 @@ class Settings(BaseSettings):
     STRIPE_CONNECT_RETURN_URL: str = "http://localhost:5173/seller/onboarding/complete"
     STRIPE_CONNECT_REFRESH_URL: str = "http://localhost:5173/seller/onboarding"
 
+    # フロントエンドURL
+    BASE_URL: str
+
     model_config = SettingsConfigDict(
         # 環境変数から設定ファイルを決定
         env_file=f".env.{os.getenv('ENVIRONMENT', 'development')}",

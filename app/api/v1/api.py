@@ -10,7 +10,8 @@ from app.api.v1.endpoints import (
     dimension_endpoints,
     seller_endpoints,
     listing_endpoints,
-    constants_endpoints
+    constants_endpoints,
+    transaction_endpoints,
 )
 
 api_router = APIRouter()
@@ -27,3 +28,4 @@ api_router.include_router(dimension_endpoints.router)
 api_router.include_router(seller_endpoints.router)
 api_router.include_router(listing_endpoints.router)
 api_router.include_router(constants_endpoints.router)
+api_router.include_router(transaction_endpoints.router)

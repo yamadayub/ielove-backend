@@ -1,11 +1,14 @@
+from typing import Optional, List, Dict
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy.orm import Session
-from typing import List
+from sqlalchemy import select
+from sqlalchemy.orm import Session, joinedload
+
 from app.database import get_db
 from app.auth.dependencies import get_current_user
-from app.models import User, Property
-from app.schemas.listing_item_schemas import ListingItem
+from app.models import User, Property, ListingItem, SellerProfile
+from app.schemas.listing_item_schemas import ListingItem as ListingItemSchema
 from app.crud.listing_item import listing_item
+from app.enums import ListingStatus, Visibility
 
 router = APIRouter(
     prefix="/listings",
@@ -13,9 +16,9 @@ router = APIRouter(
 )
 
 
-@router.post("", response_model=ListingItem)
+@router.post("", response_model=ListingItemSchema)
 def create_listing(
-    listing: ListingItem,
+    listing: ListingItemSchema,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -51,7 +54,7 @@ def create_listing(
     )
 
 
-@router.get("", response_model=List[ListingItem])
+@router.get("", response_model=List[ListingItemSchema])
 def get_listings(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -72,7 +75,76 @@ def get_listings(
     )
 
 
-@router.get("/{listing_id}", response_model=ListingItem)
+@router.get("/by-property/{property_id}", response_model=Dict[str, List[dict]])
+async def get_listing_items_by_property(
+    property_id: int,
+    include_seller: bool = Query(True, description="セラー情報を含めるかどうか"),
+    db: Session = Depends(get_db),
+):
+    """
+    指定された物件に紐づく出品一覧を取得します。
+
+    - ステータスがPUBLISHEDのみ
+    - visibilityがPUBLICのみ
+    - property_idに紐づく全てのListingItem
+    """
+
+    # 物件の存在確認
+    property_exists = db.query(Property).filter(
+        Property.id == property_id).first()
+    if not property_exists:
+        raise HTTPException(status_code=404, detail="Property not found")
+
+    # クエリの構築
+    query = (
+        select(ListingItem)
+        .options(
+            joinedload(ListingItem.property),
+            joinedload(ListingItem.seller).joinedload(SellerProfile.user)
+        )
+        .join(Property)
+        .filter(
+            ListingItem.property_id == property_id,
+            ListingItem.status == ListingStatus.PUBLISHED,
+            ListingItem.visibility == Visibility.PUBLIC
+        )
+        .order_by(ListingItem.created_at.desc())
+    )
+
+    # クエリの実行
+    listing_items = db.execute(query).unique().scalars().all()
+
+    # レスポンスの構築
+    response_items = []
+    for item in listing_items:
+        response_item = {
+            "id": item.id,
+            "title": item.title,
+            "description": item.description,
+            "price": item.price,
+            "listing_type": item.listing_type.value,
+            "created_at": item.created_at,
+            "property": {
+                "id": item.property.id,
+                "name": item.property.name
+            }
+        }
+
+        if include_seller:
+            response_item["seller"] = {
+                "id": item.seller.id,
+                "name": item.seller.user.name,
+                "company_name": item.seller.company_name
+            }
+        else:
+            response_item["seller"] = None
+
+        response_items.append(response_item)
+
+    return {"items": response_items}
+
+
+@router.get("/{listing_id}", response_model=ListingItemSchema)
 def get_listing(
     listing_id: int,
     db: Session = Depends(get_db),
@@ -87,10 +159,10 @@ def get_listing(
     return db_listing
 
 
-@router.put("/{listing_id}", response_model=ListingItem)
+@router.put("/{listing_id}", response_model=ListingItemSchema)
 def update_listing(
     listing_id: int,
-    listing_in: ListingItem,
+    listing_in: ListingItemSchema,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -115,7 +187,7 @@ def update_listing(
     return listing_item.update(db=db, db_obj=db_listing, obj_in=listing_in)
 
 
-@router.delete("/{listing_id}", response_model=ListingItem)
+@router.delete("/{listing_id}", response_model=ListingItemSchema)
 def delete_listing(
     listing_id: int,
     db: Session = Depends(get_db),

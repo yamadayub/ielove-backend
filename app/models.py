@@ -208,10 +208,6 @@ class User(Base):
         "SellerProfile", back_populates="user", uselist=False)
     buyer_profile = relationship(
         "BuyerProfile", back_populates="user", uselist=False)
-    buyer_transactions = relationship(
-        "Transaction", foreign_keys="[Transaction.buyer_id]", back_populates="buyer")
-    seller_transactions = relationship(
-        "Transaction", foreign_keys="[Transaction.seller_id]", back_populates="seller")
 
 
 class BuyerProfile(Base):
@@ -432,7 +428,7 @@ class TransactionErrorLog(Base):
 
     id = Column(Integer, primary_key=True)
     transaction_id = Column(Integer, ForeignKey(
-        "transactions.id"), nullable=False)
+        "transactions.id"), nullable=True)
     error_type = Column(Enum(ErrorType), nullable=False)
     error_code = Column(String, nullable=False)
     error_message = Column(Text, nullable=False)

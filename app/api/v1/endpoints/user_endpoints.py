@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 import app.schemas as schemas
 from app.services.user_service import user_service
@@ -12,10 +12,16 @@ router = APIRouter(
 
 
 @router.get("/me", response_model=schemas.UserSchema, summary="現在のユーザー情報を取得する")
-def get_me(current_user: schemas.UserSchema = Depends(get_current_user)):
+def get_me(
+    request: Request,
+    current_user: schemas.UserSchema = Depends(get_current_user)
+):
     """
     現在のユーザー情報を取得します。
     """
+    print("Headers:", request.headers)
+    print("Clerk User ID:", request.headers.get("x-clerk-user-id"))
+    print("Current User:", current_user)
     return current_user
 
 

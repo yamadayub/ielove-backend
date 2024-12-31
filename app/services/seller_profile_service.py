@@ -28,9 +28,6 @@ def register_seller(
     seller_data_dict["user_id"] = current_user.id
 
     try:
-        # トランザクションを使用してSellerプロフィール作成とユーザー更新を実行
-        db.begin_nested()
-
         # SellerProfileの作成
         seller = seller_profile.create(
             db, obj_in=seller_profile_schemas.SellerProfileSchema(**seller_data_dict))
@@ -39,8 +36,9 @@ def register_seller(
         current_user.role = "both"
         db.add(current_user)
 
-        db.flush()
+        # 変更をコミット
         db.commit()
+        db.refresh(seller)
         return seller
 
     except Exception as e:

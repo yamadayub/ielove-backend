@@ -1,8 +1,9 @@
 import stripe
 from fastapi import HTTPException
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 from sqlalchemy.orm import Session
 from datetime import datetime
+from enum import Enum
 
 from app.config import get_settings
 from app.models import Transaction, TransactionAuditLog, TransactionErrorLog, ListingItem
@@ -14,8 +15,20 @@ settings = get_settings()
 stripe.api_key = settings.STRIPE_SECRET_KEY
 
 
+class WebhookType(Enum):
+    PAYMENT = "payment"
+    CONNECT = "connect"
+
+
 class StripeService:
     """Stripe関連の処理を行うサービス"""
+
+    def __init__(self):
+        stripe.api_key = settings.STRIPE_SECRET_KEY
+        self.webhook_secrets = {
+            WebhookType.PAYMENT: settings.STRIPE_TRANSACTION_WEBHOOK_SECRET,
+            WebhookType.CONNECT: settings.STRIPE_CONNECT_WEBHOOK_SECRET
+        }
 
     @staticmethod
     async def create_connect_account(email: str, business_profile: Dict[str, Any]) -> Dict[str, Any]:
@@ -62,20 +75,30 @@ class StripeService:
         except stripe.error.StripeError as e:
             raise HTTPException(status_code=400, detail=str(e))
 
-    @staticmethod
-    async def verify_webhook_signature(payload: bytes, sig_header: str) -> Dict[str, Any]:
-        """Webhookの署名を検証する"""
+    def verify_webhook_signature(
+        self,
+        payload: bytes,
+        sig_header: str,
+        webhook_type: WebhookType
+    ) -> Dict[str, Any]:
+        """
+        Webhookの署名を検証し、イベントを構築する
+
+        Args:
+            payload: Webhookのリクエストボディ
+            sig_header: Stripe-Signature header
+            webhook_type: WebhookのタイプPAYMENTまたはCONNECT
+        """
         try:
+            webhook_secret = self.webhook_secrets[webhook_type]
             event = stripe.Webhook.construct_event(
-                payload,
-                sig_header,
-                settings.STRIPE_WEBHOOK_SECRET
+                payload, sig_header, webhook_secret
             )
             return event
+        except ValueError as e:
+            raise ValueError(f"Invalid payload: {str(e)}")
         except stripe.error.SignatureVerificationError as e:
-            raise HTTPException(status_code=400, detail="Invalid signature")
-        except Exception as e:
-            raise HTTPException(status_code=400, detail=str(e))
+            raise ValueError(f"Invalid signature: {str(e)}")
 
     @staticmethod
     async def create_account_login_link(account_id: str) -> Dict[str, Any]:

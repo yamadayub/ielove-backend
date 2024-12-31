@@ -16,8 +16,9 @@ from app.schemas.transaction_schemas import (
     ListingInfo
 )
 from app.schemas.checkout_schemas import CheckoutSessionCreate, CheckoutSessionResponse
-from app.services.stripe_service import stripe_service
+from app.services.stripe_service import stripe_service, WebhookType
 from app.services.buyer_profile_service import buyer_profile_service
+from app.services.transaction_service import transaction_service
 
 router = APIRouter(prefix="/transactions", tags=["transactions"])
 
@@ -200,48 +201,23 @@ async def create_checkout_session(
 
 
 @router.post("/webhook", include_in_schema=False)
-async def handle_stripe_webhook(
+async def stripe_webhook(
     request: Request,
     db: Session = Depends(get_db)
-) -> Dict[str, bool]:
-    """
-    Stripeからのwebhookを処理する
+):
+    """Stripeからのwebhookを処理する"""
+    payload = await request.body()
+    sig_header = request.headers.get("stripe-signature")
 
-    Args:
-        request: リクエストオブジェクト
-        db: データベースセッション
-
-    Returns:
-        Dict[str, bool]: 処理結果
-    """
     try:
-        # リクエストボディの取得
-        payload = await request.body()
-        sig_header = request.headers.get("stripe-signature")
-
-        if not sig_header:
-            raise ValueError("Stripe signature is missing")
-
-        # Webhookの署名を検証してイベントを取得
-        event = await stripe_service.verify_webhook_signature(payload, sig_header)
-
-        # イベントタイプに応じた処理
+        event = stripe_service.verify_webhook_signature(
+            payload,
+            sig_header,
+            WebhookType.PAYMENT
+        )
         if event["type"] == "checkout.session.completed":
-            await stripe_service.handle_checkout_completed(
-                db=db,
-                session=event["data"]["object"]
-            )
-            print(
-                f"Successfully processed checkout.session.completed event: {event['id']}")
-
-        return {"received": True}
-
+            session = event["data"]["object"]
+            await stripe_service.handle_checkout_completed(db, session)
+        return {"status": "success"}
     except ValueError as e:
-        # バリデーションエラー
-        print(f"Webhook validation error: {str(e)}")
-        return {"received": True}  # Stripeには常に200を返す
-
-    except Exception as e:
-        # 予期せぬエラー
-        print(f"Webhook error: {str(e)}")
-        return {"received": True}  # Stripeには常に200を返す
+        raise HTTPException(status_code=400, detail=str(e))

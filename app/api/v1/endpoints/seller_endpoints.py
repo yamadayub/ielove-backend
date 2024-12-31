@@ -9,6 +9,7 @@ from app.auth.dependencies import get_current_user
 from app.schemas.user_schemas import UserSchema
 from typing import Dict, Any
 from app.config import get_settings
+from app.services.stripe_service import WebhookType
 
 router = APIRouter(tags=["sellers"])
 
@@ -99,38 +100,20 @@ async def stripe_webhook(
     request: Request,
     db: Session = Depends(get_db)
 ):
-    """Stripeからのwebhookを処理する"""
+    """Stripe Connectからのwebhookを処理する"""
     payload = await request.body()
     sig_header = request.headers.get("stripe-signature")
 
-    print("Webhook received!")  # デバッグ用ログ
-
-    if not sig_header:
-        raise HTTPException(status_code=400, detail="No signature header")
-
-    event = await stripe_service.verify_webhook_signature(payload, sig_header)
-    print(f"Event type: {event['type']}")  # イベントタイプのログ
-
-    # アカウント更新イベントの処理
-    if event["type"] == "account.updated":
-        account = event["data"]["object"]
-        seller = seller_profile.get_by_stripe_account_id(
-            db, account["id"])
-
-        if seller:
-            seller_profile.update(
-                db,
-                db_obj=seller,
-                obj_in={
-                    "stripe_onboarding_completed": account["details_submitted"],
-                    "stripe_charges_enabled": account["charges_enabled"],
-                    "stripe_payouts_enabled": account["payouts_enabled"],
-                    "stripe_account_status": "active" if account["details_submitted"] else "pending",
-                    "stripe_capabilities": account["capabilities"]
-                }
-            )
-
-    return {"status": "success"}
+    try:
+        event = stripe_service.verify_webhook_signature(
+            payload,
+            sig_header,
+            WebhookType.CONNECT
+        )
+        await seller_profile_service.handle_stripe_webhook(db, event)
+        return {"status": "success"}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 @router.post("/sellers/reset-stripe", response_model=seller_profile_schemas.SellerProfileSchema)

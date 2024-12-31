@@ -40,7 +40,8 @@ class Settings(BaseSettings):
     # Stripe設定
     STRIPE_SECRET_KEY: Optional[str] = None
     STRIPE_PUBLISHABLE_KEY: Optional[str] = None
-    STRIPE_WEBHOOK_SECRET: Optional[str] = None
+    STRIPE_TRANSACTION_WEBHOOK_SECRET: Optional[str] = None
+    STRIPE_CONNECT_WEBHOOK_SECRET: Optional[str] = None
     STRIPE_CONNECT_CLIENT_ID: Optional[str] = None
     STRIPE_CONNECT_RETURN_URL: str = "http://localhost:5173/seller/onboarding/complete"
     STRIPE_CONNECT_REFRESH_URL: str = "http://localhost:5173/seller/onboarding"
@@ -101,7 +102,8 @@ class Settings(BaseSettings):
         return all([
             self.STRIPE_SECRET_KEY,
             self.STRIPE_PUBLISHABLE_KEY,
-            self.STRIPE_WEBHOOK_SECRET,
+            self.STRIPE_TRANSACTION_WEBHOOK_SECRET,
+            self.STRIPE_CONNECT_WEBHOOK_SECRET,
             self.STRIPE_CONNECT_CLIENT_ID
         ])
 

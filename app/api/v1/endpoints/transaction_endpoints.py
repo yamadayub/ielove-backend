@@ -214,9 +214,18 @@ async def stripe_webhook(
             sig_header,
             WebhookType.PAYMENT
         )
+
+        # イベントタイプに基づいて処理
         if event["type"] == "checkout.session.completed":
             session = event["data"]["object"]
             await stripe_service.handle_checkout_completed(db, session)
-        return {"status": "success"}
+            return {"status": "success"}
+        else:
+            # 他のイベントタイプは正常に受け取ったことだけを通知
+            print(f"Received unhandled event type: {event['type']}")
+            return {"status": "received"}
+
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        print(f"Webhook error: {str(e)}")
+        # Stripeに再試行させないよう200を返す
+        return {"status": "error", "message": str(e)}

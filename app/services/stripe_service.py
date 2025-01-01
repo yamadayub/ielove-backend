@@ -94,13 +94,31 @@ class StripeService:
             print(f"[DEBUG] Webhook Type: {webhook_type.value}")
             print(f"[DEBUG] Webhook Secret: {webhook_secret}")
             print(f"[DEBUG] Signature Header: {sig_header}")
-            print(f"[DEBUG] Available Secrets: {self.webhook_secrets}")
-            print(f"[DEBUG] Payload (first 100 chars): {payload[:100]}")
 
+            # 署名ヘッダーの解析
+            if sig_header:
+                print("[DEBUG] Parsing signature components:")
+                components = {
+                    k: v for k, v in [
+                        pair.split("=") for pair in sig_header.split(",")
+                    ]
+                }
+                print(f"[DEBUG] Timestamp: {components.get('t')}")
+                print(f"[DEBUG] v0 signature: {components.get('v0')}")
+                print(f"[DEBUG] v1 signature: {components.get('v1')}")
+
+            # ペイロードの確認
+            print(f"[DEBUG] Payload length: {len(payload)}")
+            print(f"[DEBUG] Payload type: {type(payload)}")
+            print(f"[DEBUG] Payload preview: {payload[:100]}")
+
+            # 署名検証
             event = stripe.Webhook.construct_event(
                 payload, sig_header, webhook_secret
             )
+            print("[DEBUG] Signature verification successful")
             return event
+
         except ValueError as e:
             print(f"[ERROR] ValueError in verify_webhook_signature: {str(e)}")
             print(f"[ERROR] Webhook Type: {webhook_type.value}")
@@ -111,6 +129,10 @@ class StripeService:
             print(f"[ERROR] Webhook Type: {webhook_type.value}")
             print(f"[ERROR] Secret Used: {webhook_secret}")
             raise ValueError(f"Invalid signature: {str(e)}")
+        except Exception as e:
+            print(
+                f"[ERROR] Unexpected error in verify_webhook_signature: {str(e)}")
+            raise ValueError(f"Webhook verification failed: {str(e)}")
 
     @staticmethod
     async def create_account_login_link(account_id: str) -> Dict[str, Any]:

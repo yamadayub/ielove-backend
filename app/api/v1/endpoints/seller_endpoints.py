@@ -104,6 +104,11 @@ async def stripe_webhook(
     payload = await request.body()
     sig_header = request.headers.get("stripe-signature")
 
+    # デバッグ用のログ追加
+    print("[DEBUG] Request Headers:", dict(request.headers))
+    print("[DEBUG] Raw Payload Length:", len(payload))
+    print("[DEBUG] Raw Payload Type:", type(payload))
+
     try:
         event = stripe_service.verify_webhook_signature(
             payload,
@@ -113,6 +118,7 @@ async def stripe_webhook(
         await seller_profile_service.handle_stripe_webhook(db, event)
         return {"status": "success"}
     except ValueError as e:
+        print(f"[ERROR] Webhook Processing Error: {str(e)}")
         raise HTTPException(status_code=400, detail=str(e))
 
 

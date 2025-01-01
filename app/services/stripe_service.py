@@ -91,13 +91,25 @@ class StripeService:
         """
         try:
             webhook_secret = self.webhook_secrets[webhook_type]
+            print(f"[DEBUG] Webhook Type: {webhook_type.value}")
+            print(f"[DEBUG] Webhook Secret: {webhook_secret}")
+            print(f"[DEBUG] Signature Header: {sig_header}")
+            print(f"[DEBUG] Available Secrets: {self.webhook_secrets}")
+            print(f"[DEBUG] Payload (first 100 chars): {payload[:100]}")
+
             event = stripe.Webhook.construct_event(
                 payload, sig_header, webhook_secret
             )
             return event
         except ValueError as e:
+            print(f"[ERROR] ValueError in verify_webhook_signature: {str(e)}")
+            print(f"[ERROR] Webhook Type: {webhook_type.value}")
+            print(f"[ERROR] Secret Used: {webhook_secret}")
             raise ValueError(f"Invalid payload: {str(e)}")
         except stripe.error.SignatureVerificationError as e:
+            print(f"[ERROR] SignatureVerificationError: {str(e)}")
+            print(f"[ERROR] Webhook Type: {webhook_type.value}")
+            print(f"[ERROR] Secret Used: {webhook_secret}")
             raise ValueError(f"Invalid signature: {str(e)}")
 
     @staticmethod

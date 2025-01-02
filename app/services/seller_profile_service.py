@@ -33,6 +33,7 @@ def register_seller(
             db, obj_in=seller_profile_schemas.SellerProfileSchema(**seller_data_dict))
 
         # ユーザーのroleを'both'に更新
+        current_user = db.query(User).get(current_user.id)
         current_user.role = "both"
         db.add(current_user)
 

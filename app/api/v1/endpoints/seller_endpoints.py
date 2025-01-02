@@ -101,13 +101,25 @@ async def stripe_webhook(
     db: Session = Depends(get_db)
 ):
     """Stripe Connectからのwebhookを処理する"""
+    # リクエストの詳細をログ出力
+    print("\n=== Webhook Request Details ===")
+    print(f"[DEBUG] Method: {request.method}")
+    print(f"[DEBUG] URL: {request.url}")
+    print(f"[DEBUG] Headers:")
+    for name, value in request.headers.items():
+        print(f"  {name}: {value}")
+
     payload = await request.body()
     sig_header = request.headers.get("stripe-signature")
 
-    # デバッグ用のログ追加
-    print("[DEBUG] Request Headers:", dict(request.headers))
-    print("[DEBUG] Raw Payload Length:", len(payload))
-    print("[DEBUG] Raw Payload Type:", type(payload))
+    print("\n=== Webhook Payload Details ===")
+    print(f"[DEBUG] Payload Type: {type(payload)}")
+    print(f"[DEBUG] Payload Length: {len(payload)}")
+    print(f"[DEBUG] Payload Content (first 200 chars):")
+    try:
+        print(payload.decode('utf-8')[:200])
+    except Exception as e:
+        print(f"[ERROR] Failed to decode payload: {e}")
 
     try:
         event = stripe_service.verify_webhook_signature(

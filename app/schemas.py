@@ -209,7 +209,7 @@ class PropertySchema(BaseModel):
     user_id: int
     name: str
     description: Optional[str] = None
-    property_type: Literal["house", "apartment", "other"]
+    property_type: str
     prefecture: str
     layout: Optional[str] = None
     construction_year: Optional[int] = None
@@ -241,7 +241,7 @@ class PropertyCreateBaseSchema(BaseModel):
     user_id: int
     name: str
     description: Optional[str] = None
-    property_type: Literal["house", "apartment", "other"]
+    property_type: Literal["HOUSE", "APARTMENT", "OTHER"]
     prefecture: str
     layout: Optional[str] = None
     construction_year: Optional[int] = None
@@ -258,7 +258,7 @@ class PropertyCreateSchema(BaseModel):
     user_id: int
     name: str
     description: Optional[str] = None
-    property_type: Literal["house", "apartment", "other"]
+    property_type: Literal["HOUSE", "APARTMENT", "OTHER"]
     prefecture: str
     layout: Optional[str] = None
     construction_year: Optional[int] = None
@@ -318,7 +318,7 @@ class UserCreate(BaseModel):
 class PropertyUpdateSchema(BaseModel):
     name: Optional[str] = None
     description: Optional[str] = None
-    property_type: Optional[Literal["house", "apartment", "other"]] = None
+    property_type: Optional[Literal["HOUSE", "APARTMENT", "OTHER"]] = None
     prefecture: Optional[str] = None
     layout: Optional[str] = None
     construction_year: Optional[int] = None

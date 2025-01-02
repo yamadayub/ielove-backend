@@ -154,8 +154,16 @@ def get_listing(
     db_listing = listing_item.get(db=db, id=listing_id)
     if not db_listing:
         raise HTTPException(status_code=404, detail="Listing not found")
-    if db_listing.seller_id != current_user.seller_profile.id:
-        raise HTTPException(status_code=403, detail="Not enough permissions")
+
+    # 自分の物件の場合のみ、非公開でも閲覧可能
+    if current_user.seller_profile and db_listing.seller_id == current_user.seller_profile.id:
+        return db_listing
+
+    # 他人の物件の場合は、公開されているもののみ閲覧可能
+    if not db_listing.is_public:
+        raise HTTPException(
+            status_code=403, detail="This listing is not public")
+
     return db_listing
 
 

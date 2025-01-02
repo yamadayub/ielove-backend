@@ -160,7 +160,7 @@ def get_listing(
         return db_listing
 
     # 他人の物件の場合は、公開されているもののみ閲覧可能
-    if not db_listing.is_public:
+    if db_listing.visibility != Visibility.PUBLIC or db_listing.status != ListingStatus.PUBLISHED:
         raise HTTPException(
             status_code=403, detail="This listing is not public")
 

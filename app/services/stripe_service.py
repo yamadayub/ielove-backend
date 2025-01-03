@@ -333,8 +333,8 @@ class StripeService:
                     'seller_id': str(seller_profile.id),
                 },
                 customer=buyer_profile.stripe_customer_id,
-                success_url=f"{settings.BASE_URL}/checkout/result?status=success",
-                cancel_url=f"{settings.BASE_URL}/checkout/result?status=cancel",
+                success_url=f"{settings.BASE_URL}/checkout/success",
+                cancel_url=f"{settings.BASE_URL}/checkout/cancel",
             )
             return {
                 'sessionId': session.id,

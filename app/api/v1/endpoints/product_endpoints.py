@@ -1,9 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from typing import List
 from app.schemas.product_schemas import (
     ProductSchema,
-    ProductDetailsSchema
+    ProductDetailsSchema,
+    PropertyProductsResponse
 )
 from app.schemas.product_specification_schemas import ProductSpecificationSchema
 from app.schemas.product_dimension_schemas import ProductDimensionSchema
@@ -11,6 +12,7 @@ from app.services.product_service import product_service
 from app.database import get_db
 from app.auth.dependencies import get_current_user
 from app.schemas.user_schemas import UserSchema
+from app.models import Product, Room, ProductCategory
 
 router = APIRouter(
     prefix="/products",
@@ -92,3 +94,36 @@ def get_product_details(
         - 物件の基本情報
     """
     return product_service.get_product_details(db, product_id)
+
+
+@router.get("/property/{property_id}", response_model=List[PropertyProductsResponse], summary="物件に紐づく全製品情報を取得する")
+def get_products_by_property(
+    property_id: int,
+    db: Session = Depends(get_db)
+):
+    """
+    指定された物件IDに紐づく全ての製品情報を取得します。
+    各製品の部屋情報と製品カテゴリ情報も含みます。
+
+    Parameters:
+    - property_id: 物件ID
+
+    Returns:
+    - 製品情報のリスト（部屋情報、カテゴリ情報、製造者情報、仕様、寸法を含む）
+    """
+    products = db.query(Product).options(
+        joinedload(Product.room),
+        joinedload(Product.product_category),
+        joinedload(Product.manufacturer),
+        joinedload(Product.specifications),
+        joinedload(Product.dimensions)
+    ).join(
+        Room, Product.room_id == Room.id
+    ).filter(
+        Room.property_id == property_id
+    ).all()
+
+    if not products:
+        return []
+
+    return [PropertyProductsResponse.from_orm(product) for product in products]

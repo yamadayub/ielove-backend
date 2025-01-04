@@ -52,7 +52,7 @@ class ProductService:
             "description": product.description,
             "room_id": product.room_id,
             "product_category_id": product.product_category_id,
-            "manufacturer_id": product.manufacturer_id,
+            "manufacturer_name": product.manufacturer_name,
             "product_code": product.product_code,
             "catalog_url": product.catalog_url,
             "created_at": product.created_at,

@@ -114,7 +114,6 @@ def get_products_by_property(
     products = db.query(Product).options(
         joinedload(Product.room),
         joinedload(Product.product_category),
-        joinedload(Product.manufacturer),
         joinedload(Product.specifications),
         joinedload(Product.dimensions)
     ).join(

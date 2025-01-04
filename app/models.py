@@ -29,7 +29,6 @@ class Company(Base):
     website = Column(String)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
-    products = relationship("Product", back_populates="manufacturer")
     designed_properties = relationship(
         "Property",
         back_populates="design_company",
@@ -115,9 +114,7 @@ class Product(Base):
     product_category_id = Column(Integer,
                                  ForeignKey("product_categories.id"),
                                  nullable=True)
-    manufacturer_id = Column(Integer,
-                             ForeignKey("companies.id"),
-                             nullable=True)
+    manufacturer_name = Column(String, nullable=True)
     name = Column(String, nullable=False)
     product_code = Column(String, nullable=True)
     description = Column(Text, nullable=True)
@@ -127,7 +124,6 @@ class Product(Base):
     room = relationship("Room", back_populates="products")
     product_category = relationship("ProductCategory",
                                     back_populates="products")
-    manufacturer = relationship("Company", back_populates="products")
     specifications = relationship("ProductSpecification",
                                   back_populates="product",
                                   cascade="all, delete-orphan")

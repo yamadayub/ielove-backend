@@ -11,7 +11,6 @@ class ProductSchema(BaseModel):
     room_id: int
     product_category_id: Optional[int] = None
     product_category_name: Optional[str] = None
-    manufacturer_id: Optional[int] = None
     manufacturer_name: Optional[str] = None
     name: str
     product_code: Optional[str] = None
@@ -39,7 +38,6 @@ class PropertyProductsResponse(BaseModel):
     room_name: str
     product_category_id: Optional[int] = None
     product_category_name: Optional[str] = None
-    manufacturer_id: Optional[int] = None
     manufacturer_name: Optional[str] = None
     specifications: List[ProductSpecificationSchema] = []
     dimensions: List[ProductDimensionSchema] = []
@@ -60,8 +58,7 @@ class PropertyProductsResponse(BaseModel):
             room_name=product.room.name if product.room else None,
             product_category_id=product.product_category_id,
             product_category_name=product.product_category.name if product.product_category else None,
-            manufacturer_id=product.manufacturer_id,
-            manufacturer_name=product.manufacturer.name if product.manufacturer else None,
+            manufacturer_name=product.manufacturer_name,
             specifications=product.specifications,
             dimensions=product.dimensions,
             created_at=product.created_at

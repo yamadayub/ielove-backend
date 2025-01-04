@@ -13,7 +13,7 @@ class ProductCRUD(CRUDBase[Product, ProductSchema, ProductSchema]):
         db_obj = Product(
             room_id=obj_in.room_id,
             product_category_id=obj_in.product_category_id,
-            manufacturer_id=obj_in.manufacturer_id,
+            manufacturer_name=obj_in.manufacturer_name,
             name=obj_in.name,
             product_code=obj_in.product_code,
             description=obj_in.description,
@@ -43,31 +43,24 @@ class ProductCRUD(CRUDBase[Product, ProductSchema, ProductSchema]):
         return db.query(self.model).filter(self.model.product_category_id == category_id)\
             .offset(skip).limit(limit).all()
 
-    def get_by_manufacturer(self, db: Session, manufacturer_id: int, skip: int = 0, limit: int = 100):
-        return db.query(self.model).filter(self.model.manufacturer_id == manufacturer_id)\
-            .offset(skip).limit(limit).all()
-
     def get_products_by_room(self, db: Session, room_id: int, skip: int = 0, limit: int = 100):
         """
         指定された部屋IDに紐づく製品一覧を取得
-        product_categoryとmanufacturerの情報も含める
+        product_categoryの情報も含める
         """
         products = db.query(Product)\
             .options(
-                joinedload(Product.product_category),
-                joinedload(Product.manufacturer)
+                joinedload(Product.product_category)
         )\
             .filter(Product.room_id == room_id)\
             .offset(skip)\
             .limit(limit)\
             .all()
 
-        # 明示的にproduct_category_nameとmanufacturer_nameを設定
+        # 明示的にproduct_category_nameを設定
         for product in products:
             if product.product_category:
                 product.product_category_name = product.product_category.name
-            if product.manufacturer:
-                product.manufacturer_name = product.manufacturer.name
 
         return products
 
@@ -79,29 +72,24 @@ class ProductCRUD(CRUDBase[Product, ProductSchema, ProductSchema]):
             .options(
                 joinedload(Product.specifications),
                 joinedload(Product.dimensions),
-                joinedload(Product.product_category),
-                joinedload(Product.manufacturer)
+                joinedload(Product.product_category)
         )\
             .filter(Product.id == product_id)\
             .first()
 
         # 明示的に関連名を設定
-        if product:
-            if product.product_category:
-                product.product_category_name = product.product_category.name
-            if product.manufacturer:
-                product.manufacturer_name = product.manufacturer.name
+        if product and product.product_category:
+            product.product_category_name = product.product_category.name
 
         return product
 
     def get(self, db: Session, id: int) -> Optional[Product]:
         """
-        指定されたIDの製品を取得（カテゴリ、メーカー、仕様、寸法情報を含む）
+        指定されたIDの製品を取得（カテゴリ、仕様、寸法情報を含む）
         """
         product = db.query(Product)\
             .options(
                 joinedload(Product.product_category),
-                joinedload(Product.manufacturer),
                 joinedload(Product.specifications),
                 joinedload(Product.dimensions)
         )\
@@ -114,18 +102,13 @@ class ProductCRUD(CRUDBase[Product, ProductSchema, ProductSchema]):
             print(f"Product Category: {product.product_category}")
             print(
                 f"Product Category Name: {product.product_category.name if product.product_category else None}")
-            print(f"Manufacturer: {product.manufacturer}")
-            print(
-                f"Manufacturer Name: {product.manufacturer.name if product.manufacturer else None}")
+            print(f"Manufacturer Name: {product.manufacturer_name}")
             print(f"Specifications Count: {len(product.specifications)}")
             print(f"Dimensions Count: {len(product.dimensions)}")
 
         # 明示的に関連名を設定
-        if product:
-            if product.product_category:
-                product.product_category_name = product.product_category.name
-            if product.manufacturer:
-                product.manufacturer_name = product.manufacturer.name
+        if product and product.product_category:
+            product.product_category_name = product.product_category.name
 
         return product
 

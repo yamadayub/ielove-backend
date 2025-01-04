@@ -45,6 +45,7 @@ class Settings(BaseSettings):
     STRIPE_CONNECT_CLIENT_ID: Optional[str] = None
     STRIPE_CONNECT_RETURN_URL: str
     STRIPE_CONNECT_REFRESH_URL: str
+    STRIPE_TRANSFER_WEBHOOK_SECRET: str
 
     # フロントエンドURL
     BASE_URL: str

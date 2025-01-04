@@ -18,6 +18,7 @@ stripe.api_key = settings.STRIPE_SECRET_KEY
 class WebhookType(Enum):
     PAYMENT = "payment"
     CONNECT = "connect"
+    TRANSFER = "transfer"
 
 
 class StripeService:
@@ -27,7 +28,8 @@ class StripeService:
         stripe.api_key = settings.STRIPE_SECRET_KEY
         self.webhook_secrets = {
             WebhookType.PAYMENT: settings.STRIPE_TRANSACTION_WEBHOOK_SECRET,
-            WebhookType.CONNECT: settings.STRIPE_CONNECT_WEBHOOK_SECRET
+            WebhookType.CONNECT: settings.STRIPE_CONNECT_WEBHOOK_SECRET,
+            WebhookType.TRANSFER: settings.STRIPE_TRANSFER_WEBHOOK_SECRET
         }
 
     @staticmethod
@@ -313,6 +315,11 @@ class StripeService:
     ) -> Dict[str, Any]:
         """Stripeのチェックアウトセッションを作成する"""
         try:
+            # 手数料計算（30%）
+            total_amount = listing_item.price
+            platform_fee = int(total_amount * 0.3)
+            transfer_amount = total_amount - platform_fee
+
             session = stripe.checkout.Session.create(
                 mode='payment',
                 payment_method_types=['card'],
@@ -327,10 +334,18 @@ class StripeService:
                     },
                     'quantity': 1,
                 }],
+                payment_intent_data={
+                    'application_fee_amount': platform_fee,  # プラットフォーム手数料
+                    'transfer_data': {
+                        'destination': seller_profile.stripe_account_id,  # 送金先のConnect アカウント
+                    },
+                },
                 metadata={
                     'listing_id': str(listing_item.id),
                     'buyer_id': str(buyer_profile.id),
                     'seller_id': str(seller_profile.id),
+                    'platform_fee': str(platform_fee),
+                    'transfer_amount': str(transfer_amount)
                 },
                 customer=buyer_profile.stripe_customer_id,
                 success_url=f"{settings.BASE_URL}/checkout/success",

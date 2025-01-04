@@ -1,0 +1,13 @@
+room_id,type,name,product_code,manufacturer_name,product_category_id,description,catalog_url,spec_type,spec_value,model_number,dimension_type,dimension_value,dimension_unit
+15,product,ライブナチュラルプレミアム　STANDARD,PMT2KJ48S,朝日ウッドテック,1,挽き板,,,,,,,
+15,spec,ライブナチュラルプレミアム　STANDARD,PMT2KJ48S,,,,,素材,ブラックチェリー,,,,
+15,spec,ライブナチュラルプレミアム　STANDARD,PMT2KJ48S,,,,,タイプ,2P,,,,
+15,product,リリカラ　ベース,LB-9565,リリカラ,2,ジョイントが目だちにくい織物調。味わい深い色合いがおすすめです。,https://www.lilycolor.co.jp/interior/search/product.php?data_id=28649&d=wallcoverings,,,,,,
+15,product,Glow 6000 LED-ceiling light,AW-0626E-BK/CGD,ART WORK STUDIO,4,,,,,,,,
+15,spec,Glow 6000 LED-ceiling light,AW-0626E-BK/CGD,,,,,カラー,BK/CGD（ブラック+シャンパンゴールド）,,,,
+16,product,ライブナチュラルMSX,MSX30047S,朝日ウッドテック,1,突き板,,,,,,,
+16,spec,ライブナチュラルMSX,MSX30047S,,,,,素材,シカモア,,,,
+16,spec,ライブナチュラルMSX,MSX30047S,,,,,タイプ,3P,,,,
+16,product,リリカラ　LIGHT ライト,LL-7254,リリカラ,2,,https://www.lilycolor.co.jp/interior/search/product.php?data_id=23635&d=wallcoverings,,,,,,
+16,product,PH 5,PH 5,,4,,,,,,,,
+16,spec,PH 5,PH 5,,,,,カラー,モノクローム・ペール・ブラッシュ,,,,

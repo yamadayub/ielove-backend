@@ -7,7 +7,7 @@ from typing import Dict, Any
 
 from app.auth.dependencies import get_db, get_current_user
 from app.models import User, Property, ListingItem, Transaction, BuyerProfile
-from app.enums import TransactionStatus, ListingStatus
+from app.enums import TransactionStatus, ListingStatus, TransferStatus
 from app.schemas.transaction_schemas import (
     TransactionCheckResponse,
     PurchasedTransactionsResponse,
@@ -224,6 +224,67 @@ async def stripe_webhook(
             # 他のイベントタイプは正常に受け取ったことだけを通知
             print(f"Received unhandled event type: {event['type']}")
             return {"status": "received"}
+
+    except ValueError as e:
+        print(f"Webhook error: {str(e)}")
+        # Stripeに再試行させないよう200を返す
+        return {"status": "error", "message": str(e)}
+
+
+@router.post("/webhook/connect", include_in_schema=False)
+async def stripe_connect_webhook(request: Request, db: Session = Depends(get_db)):
+    """Stripe Connectからのwebhookを処理する"""
+    payload = await request.body()
+    sig_header = request.headers.get("stripe-signature")
+
+    try:
+        event = stripe_service.verify_webhook_signature(
+            payload,
+            sig_header,
+            WebhookType.TRANSFER
+        )
+
+        # イベントタイプに基づいて処理
+        if event["type"] == "transfer.created":
+            transfer = event["data"]["object"]
+            # トランザクションの更新
+            transaction = db.query(Transaction).filter(
+                Transaction.payment_intent_id == transfer["source_transaction"]
+            ).first()
+            if transaction:
+                transaction.transfer_status = TransferStatus.PENDING
+                transaction.stripe_transfer_id = transfer["id"]
+                db.commit()
+                print(f"Transfer created: {transfer['id']}")
+
+        elif event["type"] == "transfer.updated":
+            transfer = event["data"]["object"]
+            transaction = db.query(Transaction).filter(
+                Transaction.stripe_transfer_id == transfer["id"]
+            ).first()
+            if transaction:
+                # transferの状態に応じてステータスを更新
+                if transfer["status"] == "paid":
+                    transaction.transfer_status = TransferStatus.COMPLETED
+                elif transfer["status"] == "failed":
+                    transaction.transfer_status = TransferStatus.FAILED
+                elif transfer["status"] == "pending":
+                    transaction.transfer_status = TransferStatus.PENDING
+                db.commit()
+                print(
+                    f"Transfer updated: {transfer['id']} -> {transfer['status']}")
+
+        elif event["type"] == "transfer.reversed":
+            transfer = event["data"]["object"]
+            transaction = db.query(Transaction).filter(
+                Transaction.stripe_transfer_id == transfer["id"]
+            ).first()
+            if transaction:
+                transaction.transfer_status = TransferStatus.FAILED
+                db.commit()
+                print(f"Transfer reversed: {transfer['id']}")
+
+        return {"status": "success"}
 
     except ValueError as e:
         print(f"Webhook error: {str(e)}")

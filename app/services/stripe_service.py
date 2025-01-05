@@ -172,12 +172,35 @@ class StripeService:
             print(
                 f"[DEBUG] charge_id (source_transaction): {source_transaction}")
 
-            # charge_idでトランザクションを検索
+            if not source_transaction:
+                print("[DEBUG] No source_transaction (charge_id) found")
+                return
+
+            # まずcharge_idでトランザクションを検索
             print(
                 f"[DEBUG] Searching for transaction with charge_id: {source_transaction}")
             transaction = db.query(Transaction).filter(
                 Transaction.charge_id == source_transaction
             ).first()
+
+            # charge_idで見つからない場合は、charge_idからpayment_intent_idを取得して検索
+            if not transaction:
+                print(
+                    "[DEBUG] Transaction not found with charge_id, retrieving payment_intent_id from charge")
+                try:
+                    charge = stripe.Charge.retrieve(source_transaction)
+                    payment_intent_id = charge.payment_intent
+                    print(
+                        f"[DEBUG] Retrieved payment_intent_id from charge: {payment_intent_id}")
+
+                    if payment_intent_id:
+                        print(
+                            f"[DEBUG] Searching for transaction with payment_intent_id: {payment_intent_id}")
+                        transaction = db.query(Transaction).filter(
+                            Transaction.payment_intent_id == payment_intent_id
+                        ).first()
+                except stripe.error.StripeError as e:
+                    print(f"[ERROR] Failed to retrieve charge: {str(e)}")
 
             if transaction:
                 print(f"[DEBUG] Found existing transaction: {transaction.id}")
@@ -189,11 +212,13 @@ class StripeService:
                 new_transfer_status = TransferStatus.SUCCEEDED if not is_reversed else TransferStatus.FAILED
                 transaction.transfer_status = new_transfer_status
                 transaction.stripe_transfer_id = transfer_id
+                transaction.charge_id = source_transaction  # charge_idも更新
                 transaction.updated_at = datetime.utcnow()
 
                 print(
                     f"[DEBUG] Updated transfer_status to: {transaction.transfer_status.value}")
                 print(f"[DEBUG] Updated transfer_id to: {transfer_id}")
+                print(f"[DEBUG] Updated charge_id to: {source_transaction}")
 
                 # 監査ログを追加
                 audit_log = TransactionAuditLog(
@@ -206,38 +231,13 @@ class StripeService:
                 db.add(audit_log)
                 print(
                     f"[DEBUG] Added audit log for status change: {old_status} -> {transaction.transfer_status.value}")
+
+                print("[DEBUG] Committing transaction to database")
+                db.commit()
+                print("[DEBUG] Successfully committed transaction")
             else:
-                print("[DEBUG] No existing transaction found, creating new one")
-                try:
-                    # Stripeから必要な情報を取得
-                    charge = stripe.Charge.retrieve(source_transaction)
-                    print(f"[DEBUG] Retrieved charge: {charge}")
-                    payment_intent_id = charge.get('payment_intent')
-                    print(
-                        f"[DEBUG] Found payment_intent_id: {payment_intent_id}")
-
-                    # 新規トランザクションを作成
-                    new_transfer_status = TransferStatus.SUCCEEDED if not is_reversed else TransferStatus.FAILED
-                    transaction = Transaction(
-                        charge_id=source_transaction,
-                        payment_intent_id=payment_intent_id,
-                        stripe_transfer_id=transfer_id,
-                        total_amount=charge.amount,
-                        transfer_status=new_transfer_status,
-                        created_at=datetime.utcnow(),
-                        updated_at=datetime.utcnow()
-                    )
-                    db.add(transaction)
-                    print("[DEBUG] Created new transaction with basic info")
-
-                except stripe.error.StripeError as e:
-                    print(
-                        f"[ERROR] Error retrieving charge information: {str(e)}")
-                    return
-
-            print("[DEBUG] Committing transaction to database")
-            db.commit()
-            print("[DEBUG] Successfully committed transaction")
+                print(
+                    f"[WARNING] No transaction found for charge_id: {source_transaction} or its payment_intent_id")
 
         except Exception as e:
             db.rollback()
@@ -280,66 +280,43 @@ class StripeService:
                 print(f"[DEBUG] Payment Intent ID: {payment_intent_id}")
                 print(f"[DEBUG] Charge ID: {charge_id}")
 
-            if not charge_id:
-                print("[DEBUG] No charge_id found, creating new transaction")
-                # 新規トランザクション作成
-                transaction = Transaction(
-                    listing_id=int(metadata["listing_id"]),
-                    buyer_id=int(metadata["buyer_id"]),
-                    seller_id=int(metadata["seller_id"]),
-                    payment_intent_id=payment_intent_id,
-                    total_amount=session.get("amount_total"),
-                    platform_fee=int(metadata["platform_fee"]),
-                    seller_amount=int(metadata["transfer_amount"]),
-                    transaction_status=TransactionStatus.COMPLETED,
-                    payment_status=PaymentStatus.SUCCEEDED,
-                    transfer_status=TransferStatus.PENDING,
-                    created_at=datetime.utcnow(),
-                    updated_at=datetime.utcnow()
-                )
-                db.add(transaction)
-                print("[DEBUG] Added new transaction")
-            else:
-                # charge_idでトランザクションを検索
+            if not payment_intent_id:
+                print("[WARNING] No payment_intent_id found in session")
+                return
+
+            # payment_intent_idで既存のトランザクションを検索
+            print(
+                f"[DEBUG] Searching for transaction with payment_intent_id: {payment_intent_id}")
+            transaction = db.query(Transaction).filter(
+                Transaction.payment_intent_id == payment_intent_id
+            ).first()
+
+            if transaction:
+                print(f"[DEBUG] Found existing transaction: {transaction.id}")
+                # 既存のトランザクションを更新
+                transaction.charge_id = charge_id
+                transaction.transaction_status = TransactionStatus.COMPLETED
+                transaction.updated_at = datetime.utcnow()
                 print(
-                    f"[DEBUG] Searching for transaction with charge_id: {charge_id}")
-                transaction = db.query(Transaction).filter(
-                    Transaction.charge_id == charge_id
-                ).first()
+                    "[DEBUG] Updated transaction_status to COMPLETED and set charge_id")
 
-                if transaction:
-                    print(
-                        f"[DEBUG] Found existing transaction: {transaction.id}")
-                    # 既存のトランザクションを更新
-                    transaction.payment_intent_id = payment_intent_id
-                    transaction.transaction_status = TransactionStatus.COMPLETED
-                    transaction.payment_status = PaymentStatus.SUCCEEDED
-                    transaction.updated_at = datetime.utcnow()
-                    print("[DEBUG] Updated existing transaction")
-                else:
-                    print("[DEBUG] Creating new transaction with charge_id")
-                    # 新規トランザクション作成
-                    transaction = Transaction(
-                        listing_id=int(metadata["listing_id"]),
-                        buyer_id=int(metadata["buyer_id"]),
-                        seller_id=int(metadata["seller_id"]),
-                        payment_intent_id=payment_intent_id,
-                        charge_id=charge_id,
-                        total_amount=session.get("amount_total"),
-                        platform_fee=int(metadata["platform_fee"]),
-                        seller_amount=int(metadata["transfer_amount"]),
-                        transaction_status=TransactionStatus.COMPLETED,
-                        payment_status=PaymentStatus.SUCCEEDED,
-                        transfer_status=TransferStatus.PENDING,
-                        created_at=datetime.utcnow(),
-                        updated_at=datetime.utcnow()
-                    )
-                    db.add(transaction)
-                    print("[DEBUG] Added new transaction with charge_id")
+                # 監査ログを追加
+                audit_log = TransactionAuditLog(
+                    transaction_id=transaction.id,
+                    change_type=ChangeType.WEBHOOK,
+                    old_value=transaction.transaction_status.value if transaction.transaction_status else None,
+                    new_value=TransactionStatus.COMPLETED.value,
+                    created_at=datetime.utcnow()
+                )
+                db.add(audit_log)
+                print("[DEBUG] Added audit log for transaction status update")
 
-            print("[DEBUG] Committing transaction")
-            db.commit()
-            print("[DEBUG] Successfully committed transaction")
+                print("[DEBUG] Committing transaction")
+                db.commit()
+                print("[DEBUG] Successfully committed transaction")
+            else:
+                print(
+                    f"[WARNING] No transaction found for payment_intent_id: {payment_intent_id}")
 
         except Exception as e:
             db.rollback()
@@ -352,6 +329,7 @@ class StripeService:
         listing_item: Any,
         buyer_profile: Any,
         seller_profile: Any,
+        db: Session,
     ) -> Dict[str, Any]:
         """Stripeのチェックアウトセッションを作成する"""
         try:
@@ -391,11 +369,34 @@ class StripeService:
                 success_url=f"{settings.BASE_URL}/checkout/success",
                 cancel_url=f"{settings.BASE_URL}/checkout/cancel",
             )
+
+            # トランザクションレコードを作成
+            print("[DEBUG] Creating initial transaction record")
+            transaction = Transaction(
+                listing_id=listing_item.id,
+                buyer_id=buyer_profile.id,
+                seller_id=seller_profile.id,
+                payment_intent_id=session.payment_intent,
+                total_amount=total_amount,
+                platform_fee=platform_fee,
+                seller_amount=transfer_amount,
+                transaction_status=TransactionStatus.PENDING,
+                payment_status=PaymentStatus.PENDING,
+                transfer_status=TransferStatus.PENDING,
+                created_at=datetime.utcnow(),
+                updated_at=datetime.utcnow()
+            )
+            db.add(transaction)
+            db.commit()
+            print(
+                f"[DEBUG] Created transaction record with payment_intent_id: {session.payment_intent}")
+
             return {
                 'sessionId': session.id,
                 'url': session.url,
             }
         except stripe.error.StripeError as e:
+            db.rollback()
             raise HTTPException(
                 status_code=500,
                 detail={
@@ -404,6 +405,7 @@ class StripeService:
                 }
             )
         except Exception as e:
+            db.rollback()
             raise HTTPException(
                 status_code=500,
                 detail={
@@ -429,51 +431,38 @@ class StripeService:
             print(f"[DEBUG] Payment Intent ID: {payment_intent_id}")
             print(f"[DEBUG] Latest Charge ID: {charge_id}")
 
-            if charge_id:
-                # charge_idでトランザクションを検索
-                print(
-                    f"[DEBUG] Searching for transaction with charge_id: {charge_id}")
-                transaction = db.query(Transaction).filter(
-                    Transaction.charge_id == charge_id
-                ).first()
+            # payment_intent_idでトランザクションを検索
+            print(
+                f"[DEBUG] Searching for transaction with payment_intent_id: {payment_intent_id}")
+            transaction = db.query(Transaction).filter(
+                Transaction.payment_intent_id == payment_intent_id
+            ).first()
 
-                if transaction:
-                    print(
-                        f"[DEBUG] Found existing transaction: {transaction.id}")
-                    # 既存のトランザクションを更新
-                    transaction.payment_status = PaymentStatus.SUCCEEDED
-                    transaction.updated_at = datetime.utcnow()
-                    print("[DEBUG] Updated payment_status to SUCCEEDED")
+            if transaction:
+                print(f"[DEBUG] Found existing transaction: {transaction.id}")
+                # 既存のトランザクションを更新
+                transaction.charge_id = charge_id
+                transaction.payment_status = PaymentStatus.SUCCEEDED
+                transaction.updated_at = datetime.utcnow()
+                print("[DEBUG] Updated payment_status to SUCCEEDED and set charge_id")
 
-                    # 監査ログを追加
-                    audit_log = TransactionAuditLog(
-                        transaction_id=transaction.id,
-                        change_type=ChangeType.WEBHOOK,
-                        old_value=transaction.payment_status.value if transaction.payment_status else None,
-                        new_value=PaymentStatus.SUCCEEDED.value,
-                        created_at=datetime.utcnow()
-                    )
-                    db.add(audit_log)
-                    print("[DEBUG] Added audit log for payment status update")
-                else:
-                    print("[DEBUG] Creating new transaction with charge_id")
-                    # 新規トランザクション作成
-                    transaction = Transaction(
-                        charge_id=charge_id,
-                        payment_intent_id=payment_intent_id,
-                        payment_status=PaymentStatus.SUCCEEDED,
-                        created_at=datetime.utcnow(),
-                        updated_at=datetime.utcnow()
-                    )
-                    db.add(transaction)
-                    print(
-                        "[DEBUG] Created new transaction with payment_status SUCCEEDED")
+                # 監査ログを追加
+                audit_log = TransactionAuditLog(
+                    transaction_id=transaction.id,
+                    change_type=ChangeType.WEBHOOK,
+                    old_value=transaction.payment_status.value if transaction.payment_status else None,
+                    new_value=PaymentStatus.SUCCEEDED.value,
+                    created_at=datetime.utcnow()
+                )
+                db.add(audit_log)
+                print("[DEBUG] Added audit log for payment status update")
 
                 print("[DEBUG] Committing transaction")
                 db.commit()
                 print("[DEBUG] Successfully committed transaction")
             else:
-                print("[DEBUG] No charge_id found in payment_intent")
+                print(
+                    f"[WARNING] No transaction found for payment_intent_id: {payment_intent_id}")
 
         except Exception as e:
             db.rollback()

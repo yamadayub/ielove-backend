@@ -190,7 +190,8 @@ async def create_checkout_session(
     session = await stripe_service.create_checkout_session(
         listing_item=listing_item,
         buyer_profile=buyer_profile,
-        seller_profile=listing_item.seller
+        seller_profile=listing_item.seller,
+        db=db
     )
 
     return CheckoutSessionResponse(

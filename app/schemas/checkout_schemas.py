@@ -4,7 +4,7 @@ from typing import Dict, Any
 
 class CheckoutSessionCreate(BaseModel):
     listingId: int
-    customerInfo: Dict[str, Any]
+    # customerInfo: Dict[str, Any]
 
 
 class CheckoutSessionResponse(BaseModel):

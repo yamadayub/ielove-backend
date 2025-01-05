@@ -223,6 +223,7 @@ class StripeService:
                 # 監査ログを追加
                 audit_log = TransactionAuditLog(
                     transaction_id=transaction.id,
+                    field_name="transfer_status",
                     change_type=ChangeType.WEBHOOK,
                     old_value=old_status,
                     new_value=transaction.transfer_status.value
@@ -304,6 +305,7 @@ class StripeService:
                 # 監査ログを追加
                 audit_log = TransactionAuditLog(
                     transaction_id=transaction.id,
+                    field_name="transaction_status",
                     change_type=ChangeType.WEBHOOK,
                     old_value=transaction.transaction_status.value if transaction.transaction_status else None,
                     new_value=TransactionStatus.COMPLETED.value
@@ -461,6 +463,7 @@ class StripeService:
                 # 監査ログを追加
                 audit_log = TransactionAuditLog(
                     transaction_id=transaction.id,
+                    field_name="payment_status",
                     change_type=ChangeType.WEBHOOK,
                     old_value=transaction.payment_status.value if transaction.payment_status else None,
                     new_value=PaymentStatus.SUCCEEDED.value

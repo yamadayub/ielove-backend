@@ -150,6 +150,134 @@ class StripeService:
         except stripe.error.StripeError as e:
             raise HTTPException(status_code=400, detail=str(e))
 
+    async def handle_transfer_created(
+        self,
+        db: Session,
+        transfer: Dict[str, Any]
+    ) -> None:
+        """
+        transfer.createdイベントを処理する
+
+        Args:
+            db: データベースセッション
+            transfer: Stripeのtransferデータ
+        """
+        try:
+            print(f"Received transfer data: {transfer}")
+
+            # payment_intent_idの取得
+            source_transaction = transfer.get("source_transaction")
+            if not source_transaction:
+                raise ValueError(
+                    "Source transaction (payment_intent_id) is missing")
+            print(
+                f"Source transaction (payment_intent_id): {source_transaction}")
+
+            # 既存のトランザクションを検索
+            transaction = db.query(Transaction).filter(
+                Transaction.payment_intent_id == source_transaction
+            ).first()
+
+            if transaction:
+                print(f"Found existing transaction: {transaction.id}")
+                # 既存のトランザクションの場合はtransfer関連の情報のみ更新
+                old_transfer_status = transaction.transfer_status
+                new_transfer_status = TransferStatus.SUCCEEDED if not transfer.get(
+                    "reversed") else TransferStatus.FAILED
+
+                transaction.stripe_transfer_id = transfer.get("id")
+                transaction.transfer_status = new_transfer_status
+                transaction.updated_at = datetime.utcnow()
+
+                # 監査ログの作成
+                audit_log = TransactionAuditLog(
+                    transaction_id=transaction.id,
+                    field_name="transfer_status",
+                    old_value=old_transfer_status.value if old_transfer_status else None,
+                    new_value=new_transfer_status.value,
+                    changed_by_user_id=None,  # システムによる変更
+                    change_type=ChangeType.SYSTEM,
+                    change_reason="Transfer status updated from Stripe webhook",
+                    change_metadata={
+                        "transfer_id": transfer.get("id"),
+                        "source_transaction": source_transaction
+                    }
+                )
+                db.add(audit_log)
+            else:
+                print("Creating new transaction with minimal transfer information")
+                # 新規作成の場合は必要最小限の情報で作成
+                transaction = Transaction(
+                    payment_intent_id=source_transaction,
+                    stripe_transfer_id=transfer.get("id"),
+                    transfer_status=TransferStatus.SUCCEEDED if not transfer.get(
+                        "reversed") else TransferStatus.FAILED,
+                    transaction_status=TransactionStatus.COMPLETED,  # transferが来ている時点で取引は完了している
+                    payment_status=PaymentStatus.SUCCEEDED if not transfer.get(
+                        "reversed") else PaymentStatus.FAILED,  # transferが来ている時点で支払いは成功している
+                    created_at=datetime.utcnow(),
+                    updated_at=datetime.utcnow()
+                )
+                db.add(transaction)
+                db.flush()
+
+                # 監査ログの作成
+                audit_log = TransactionAuditLog(
+                    transaction_id=transaction.id,
+                    field_name="transfer_status",
+                    old_value=None,
+                    new_value=transaction.transfer_status.value,
+                    changed_by_user_id=None,
+                    change_type=ChangeType.SYSTEM,
+                    change_reason="Transfer record created from Stripe webhook",
+                    change_metadata={
+                        "transfer_id": transfer.get("id"),
+                        "source_transaction": source_transaction
+                    }
+                )
+                db.add(audit_log)
+
+            # 変更をコミット
+            db.commit()
+            print("Successfully committed transaction and audit log")
+
+        except ValueError as e:
+            print(f"Validation error: {str(e)}")
+            db.rollback()
+            # バリデーションエラーの記録
+            error_log = TransactionErrorLog(
+                transaction_id=transaction.id if transaction else None,
+                error_type=ErrorType.VALIDATION_ERROR,
+                error_code="TRANSFER_VALIDATION_ERROR",
+                error_message=str(e),
+                error_details={
+                    "transfer_id": transfer.get("id"),
+                    "source_transaction": transfer.get("source_transaction")
+                }
+            )
+            db.add(error_log)
+            db.commit()
+            raise HTTPException(status_code=400, detail=str(e))
+
+        except Exception as e:
+            print(f"Unexpected error: {str(e)}")
+            db.rollback()
+            # 予期せぬエラーの記録
+            error_log = TransactionErrorLog(
+                transaction_id=transaction.id if transaction else None,
+                error_type=ErrorType.SYSTEM_ERROR,
+                error_code="TRANSFER_SYSTEM_ERROR",
+                error_message=str(e),
+                error_details={
+                    "transfer_id": transfer.get("id"),
+                    "source_transaction": transfer.get("source_transaction")
+                }
+            )
+            db.add(error_log)
+            db.commit()
+            raise HTTPException(
+                status_code=500, detail="Internal server error")
+
     async def handle_checkout_completed(
         self,
         db: Session,
@@ -208,13 +336,10 @@ class StripeService:
                 raise ValueError("Payment intent ID is missing")
             print(f"Payment intent ID: {payment_intent_id}")
 
-            # 既存のトランザクションをチェック（べき等性の確保）
-            existing_transaction = db.query(Transaction).filter(
+            # 既存のトランザクションをチェック
+            transaction = db.query(Transaction).filter(
                 Transaction.payment_intent_id == payment_intent_id
             ).first()
-            if existing_transaction:
-                print(f"Transaction already exists: {existing_transaction.id}")
-                return  # 既に処理済みの場合は何もしない
 
             # 金額の取得（複数の方法に対応）
             total_amount = (
@@ -234,42 +359,71 @@ class StripeService:
             print(
                 f"Calculated amounts - platform fee: {platform_fee}, seller amount: {seller_amount}")
 
-            # トランザクションの作成
-            transaction = Transaction(
-                listing_id=listing_id,
-                buyer_id=buyer_id,
-                seller_id=seller_id,
-                payment_intent_id=payment_intent_id,
-                total_amount=total_amount,
-                platform_fee=platform_fee,
-                seller_amount=seller_amount,
-                transaction_status=TransactionStatus.COMPLETED,
-                payment_status=PaymentStatus.SUCCEEDED,  # PAIDではなくSUCCEEDEDを使用
-                transfer_status=TransferStatus.PENDING,
-                created_at=datetime.utcnow(),
-                updated_at=datetime.utcnow()
-            )
-            db.add(transaction)
-            db.flush()  # IDを生成するためにflush
-            transaction_id = transaction.id
-            print(f"Created transaction with ID: {transaction.id}")
+            if transaction:
+                print(f"Updating existing transaction: {transaction.id}")
+                # 既存のトランザクションの場合は関連情報のみ更新
+                old_payment_status = transaction.payment_status
 
-            # 監査ログの作成
-            audit_log = TransactionAuditLog(
-                transaction_id=transaction.id,
-                field_name="status",
-                old_value=None,
-                new_value=TransactionStatus.COMPLETED.value,
-                changed_by_user_id=None,  # システムによる変更
-                change_type=ChangeType.SYSTEM,
-                change_reason="Transaction created from Stripe checkout",
-                change_metadata={
-                    "payment_intent_id": payment_intent_id,
-                    "checkout_session_id": session.get("id")  # 参照用に保存
-                }
-            )
-            db.add(audit_log)
-            print("Added audit log")
+                transaction.listing_id = listing_id
+                transaction.buyer_id = buyer_id
+                transaction.seller_id = seller_id
+                transaction.total_amount = total_amount
+                transaction.platform_fee = platform_fee
+                transaction.seller_amount = seller_amount
+                transaction.payment_status = PaymentStatus.SUCCEEDED
+                transaction.transaction_status = TransactionStatus.COMPLETED
+                transaction.updated_at = datetime.utcnow()
+
+                # 監査ログの作成（支払い状態の変更）
+                audit_log = TransactionAuditLog(
+                    transaction_id=transaction.id,
+                    field_name="payment_status",
+                    old_value=old_payment_status.value if old_payment_status else None,
+                    new_value=PaymentStatus.SUCCEEDED.value,
+                    changed_by_user_id=None,
+                    change_type=ChangeType.SYSTEM,
+                    change_reason="Payment status updated from Stripe checkout",
+                    change_metadata={
+                        "payment_intent_id": payment_intent_id,
+                        "checkout_session_id": session.get("id")
+                    }
+                )
+                db.add(audit_log)
+            else:
+                print("Creating new transaction")
+                # 新規作成
+                transaction = Transaction(
+                    listing_id=listing_id,
+                    buyer_id=buyer_id,
+                    seller_id=seller_id,
+                    payment_intent_id=payment_intent_id,
+                    total_amount=total_amount,
+                    platform_fee=platform_fee,
+                    seller_amount=seller_amount,
+                    transaction_status=TransactionStatus.COMPLETED,
+                    payment_status=PaymentStatus.SUCCEEDED,
+                    transfer_status=TransferStatus.PENDING,  # 初期状態
+                    created_at=datetime.utcnow(),
+                    updated_at=datetime.utcnow()
+                )
+                db.add(transaction)
+                db.flush()
+
+                # 監査ログの作成
+                audit_log = TransactionAuditLog(
+                    transaction_id=transaction.id,
+                    field_name="status",
+                    old_value=None,
+                    new_value=TransactionStatus.COMPLETED.value,
+                    changed_by_user_id=None,
+                    change_type=ChangeType.SYSTEM,
+                    change_reason="Transaction created from Stripe checkout",
+                    change_metadata={
+                        "payment_intent_id": payment_intent_id,
+                        "checkout_session_id": session.get("id")
+                    }
+                )
+                db.add(audit_log)
 
             # 変更をコミット
             db.commit()
@@ -277,7 +431,7 @@ class StripeService:
 
         except ValueError as e:
             print(f"Validation error: {str(e)}")
-            db.rollback()  # トランザクションをロールバック
+            db.rollback()
             # バリデーションエラーの記録
             error_log = TransactionErrorLog(
                 transaction_id=transaction_id,  # トランザクションIDがある場合は設定
@@ -295,10 +449,10 @@ class StripeService:
 
         except Exception as e:
             print(f"Unexpected error: {str(e)}")
-            db.rollback()  # トランザクションをロールバック
+            db.rollback()
             # 予期せぬエラーの記録
             error_log = TransactionErrorLog(
-                transaction_id=transaction_id,  # トランザクションIDがある場合は設定
+                transaction_id=transaction_id,
                 error_type=ErrorType.SYSTEM_ERROR,
                 error_code="CHECKOUT_SYSTEM_ERROR",
                 error_message=str(e),

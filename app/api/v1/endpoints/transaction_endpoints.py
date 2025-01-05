@@ -164,8 +164,7 @@ async def create_checkout_session(
     # BuyerProfileの取得または作成
     buyer_profile = await buyer_profile_service.get_or_create_buyer_profile(
         db=db,
-        user=current_user,
-        customer_info=request.customerInfo
+        user=current_user
     )
 
     # 購入済みかどうかの確認

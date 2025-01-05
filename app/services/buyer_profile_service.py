@@ -1,6 +1,7 @@
 import stripe
 from sqlalchemy.orm import Session
 from typing import Dict, Any, Optional
+from datetime import datetime
 
 from app.models import User, BuyerProfile
 from app.crud.buyer_profile import buyer_profile
@@ -8,18 +9,17 @@ from app.crud.buyer_profile import buyer_profile
 
 class BuyerProfileService:
     async def get_or_create_buyer_profile(
-        self,
         db: Session,
-        user: User,
-        customer_info: Dict[str, Any] = None
+        user: User
     ) -> BuyerProfile:
-        """BuyerProfileを取得、存在しない場合は作成する"""
-        # 既存のBuyerProfileを検索
-        buyer_profile_db = buyer_profile.get_by_user_id(db, user.id)
+        """BuyerProfileを取得または作成する"""
+        buyer_profile = db.query(BuyerProfile).filter(
+            BuyerProfile.user_id == user.id
+        ).first()
 
-        if not buyer_profile_db:
-            # Stripeカスタマー作成（current_userの情報のみを使用）
-            stripe_customer = stripe.Customer.create(
+        if not buyer_profile:
+            # Stripeの顧客を作成
+            customer = stripe.Customer.create(
                 email=user.email,
                 name=user.name,
                 metadata={
@@ -27,15 +27,18 @@ class BuyerProfileService:
                 }
             )
 
-            # BuyerProfile作成
-            buyer_profile_db = buyer_profile.create_with_stripe(
-                db=db,
+            # BuyerProfileを作成
+            buyer_profile = BuyerProfile(
                 user_id=user.id,
-                stripe_customer_id=stripe_customer.id,
-                shipping_address1=None,
+                stripe_customer_id=customer.id,
+                created_at=datetime.utcnow(),
+                updated_at=datetime.utcnow()
             )
+            db.add(buyer_profile)
+            db.commit()
+            db.refresh(buyer_profile)
 
-        return buyer_profile_db
+        return buyer_profile
 
 
 buyer_profile_service = BuyerProfileService()

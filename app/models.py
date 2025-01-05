@@ -360,7 +360,8 @@ class Transaction(Base):
         "seller_profiles.id"), nullable=False)
     listing_id = Column(Integer, ForeignKey(
         "listing_items.id"), nullable=False)
-    payment_intent_id = Column(String, nullable=False)
+    session_id = Column(String, nullable=True)
+    payment_intent_id = Column(String, nullable=True)
     charge_id = Column(String, nullable=True)
     stripe_transfer_id = Column(String, nullable=True)
     total_amount = Column(Integer, nullable=False)

@@ -267,8 +267,7 @@ class StripeService:
         """
         try:
             print("[DEBUG] Processing checkout.session.completed event")
-            # メタデータの取得
-            metadata = session.get("metadata", {})
+            session_id = session.get("id")
             payment_intent_id = session.get("payment_intent")
             charge_id = None
 
@@ -280,25 +279,28 @@ class StripeService:
                 print(f"[DEBUG] Payment Intent ID: {payment_intent_id}")
                 print(f"[DEBUG] Charge ID: {charge_id}")
 
-            if not payment_intent_id:
-                print("[WARNING] No payment_intent_id found in session")
+            if not session_id:
+                print("[WARNING] No session_id found in session")
                 return
 
-            # payment_intent_idで既存のトランザクションを検索
+            # session_idでトランザクションを検索
             print(
-                f"[DEBUG] Searching for transaction with payment_intent_id: {payment_intent_id}")
+                f"[DEBUG] Searching for transaction with session_id: {session_id}")
             transaction = db.query(Transaction).filter(
-                Transaction.payment_intent_id == payment_intent_id
+                Transaction.session_id == session_id
             ).first()
 
             if transaction:
                 print(f"[DEBUG] Found existing transaction: {transaction.id}")
                 # 既存のトランザクションを更新
+                transaction.payment_intent_id = payment_intent_id
                 transaction.charge_id = charge_id
                 transaction.transaction_status = TransactionStatus.COMPLETED
                 transaction.updated_at = datetime.utcnow()
                 print(
-                    "[DEBUG] Updated transaction_status to COMPLETED and set charge_id")
+                    "[DEBUG] Updated transaction with payment_intent_id and charge_id")
+                print(f"[DEBUG] payment_intent_id: {payment_intent_id}")
+                print(f"[DEBUG] charge_id: {charge_id}")
 
                 # 監査ログを追加
                 audit_log = TransactionAuditLog(
@@ -316,7 +318,7 @@ class StripeService:
                 print("[DEBUG] Successfully committed transaction")
             else:
                 print(
-                    f"[WARNING] No transaction found for payment_intent_id: {payment_intent_id}")
+                    f"[WARNING] No transaction found for session_id: {session_id}")
 
         except Exception as e:
             db.rollback()
@@ -390,7 +392,7 @@ class StripeService:
                 listing_id=listing_item.id,
                 buyer_id=buyer_profile.id,
                 seller_id=seller_profile.id,
-                payment_intent_id=session.payment_intent,
+                session_id=session.id,  # セッションIDを保存
                 total_amount=total_amount,
                 platform_fee=platform_fee,
                 seller_amount=transfer_amount,

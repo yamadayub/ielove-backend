@@ -361,6 +361,8 @@ class Transaction(Base):
     listing_id = Column(Integer, ForeignKey(
         "listing_items.id"), nullable=False)
     payment_intent_id = Column(String, nullable=False)
+    charge_id = Column(String, nullable=True)
+    stripe_transfer_id = Column(String, nullable=True)
     total_amount = Column(Integer, nullable=False)
     platform_fee = Column(Integer, nullable=False)
     seller_amount = Column(Integer, nullable=False)
@@ -381,9 +383,9 @@ class Transaction(Base):
 
     # Relationships
     buyer = relationship("BuyerProfile", foreign_keys=[
-                         buyer_id], back_populates="transactions")
+        buyer_id], back_populates="transactions")
     seller = relationship("SellerProfile", foreign_keys=[
-                          seller_id], back_populates="transactions")
+        seller_id], back_populates="transactions")
     listing = relationship("ListingItem", back_populates="transactions")
     audit_logs = relationship(
         "TransactionAuditLog", back_populates="transaction", cascade="all, delete-orphan")

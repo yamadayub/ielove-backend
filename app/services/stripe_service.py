@@ -225,8 +225,7 @@ class StripeService:
                     transaction_id=transaction.id,
                     change_type=ChangeType.WEBHOOK,
                     old_value=old_status,
-                    new_value=transaction.transfer_status.value,
-                    created_at=datetime.utcnow()
+                    new_value=transaction.transfer_status.value
                 )
                 db.add(audit_log)
                 print(
@@ -307,8 +306,7 @@ class StripeService:
                     transaction_id=transaction.id,
                     change_type=ChangeType.WEBHOOK,
                     old_value=transaction.transaction_status.value if transaction.transaction_status else None,
-                    new_value=TransactionStatus.COMPLETED.value,
-                    created_at=datetime.utcnow()
+                    new_value=TransactionStatus.COMPLETED.value
                 )
                 db.add(audit_log)
                 print("[DEBUG] Added audit log for transaction status update")
@@ -465,8 +463,7 @@ class StripeService:
                     transaction_id=transaction.id,
                     change_type=ChangeType.WEBHOOK,
                     old_value=transaction.payment_status.value if transaction.payment_status else None,
-                    new_value=PaymentStatus.SUCCEEDED.value,
-                    created_at=datetime.utcnow()
+                    new_value=PaymentStatus.SUCCEEDED.value
                 )
                 db.add(audit_log)
                 print("[DEBUG] Added audit log for payment status update")

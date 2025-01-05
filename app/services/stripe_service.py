@@ -381,11 +381,6 @@ class StripeService:
             print(f"[DEBUG] Payment Intent ID: {session.payment_intent}")
             print(f"[DEBUG] Full session object: {session}")
 
-            if not session.payment_intent:
-                print("[ERROR] No payment_intent_id in created session")
-                print("[DEBUG] Full session object:", session)
-                raise ValueError("No payment_intent_id in created session")
-
             # トランザクションレコードを作成
             print("[DEBUG] Creating initial transaction record")
             transaction = Transaction(

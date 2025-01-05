@@ -249,19 +249,22 @@ async def stripe_connect_webhook(request: Request, db: Session = Depends(get_db)
             transfer = event["data"]["object"]
             transfer_id = transfer.get("id")
             transfer_status = transfer.get("status")
+            is_reversed = transfer.get("reversed", False)
             source_transaction = transfer.get("source_transaction")
 
-            # 関連するトランザクションを検索
+            # 関連するトランザクションを検索（charge_idで検索）
             transaction = db.query(Transaction).filter(
-                Transaction.payment_intent_id == source_transaction
+                Transaction.charge_id == source_transaction
             ).first()
 
             if transaction:
                 # 現在のステータスを保存
                 old_status = transaction.transfer_status.value if transaction.transfer_status else None
 
-                # transferのstatusに基づいてステータスを更新
-                if transfer_status == "paid":
+                # transferのstatusとreversedフラグに基づいてステータスを更新
+                if is_reversed:
+                    transaction.transfer_status = TransferStatus.FAILED
+                elif transfer_status == "paid":
                     transaction.transfer_status = TransferStatus.COMPLETED
                 elif transfer_status == "failed":
                     transaction.transfer_status = TransferStatus.FAILED

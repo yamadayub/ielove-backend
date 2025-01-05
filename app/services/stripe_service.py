@@ -14,6 +14,11 @@ settings = get_settings()
 # Stripe APIキーの設定
 stripe.api_key = settings.STRIPE_SECRET_KEY
 
+# TransferStatusを示す定数を追加
+STRIPE_TRANSFER_STATUS_PAID = "paid"
+STRIPE_TRANSFER_STATUS_PENDING = "pending"
+STRIPE_TRANSFER_STATUS_FAILED = "failed"
+
 
 class WebhookType(Enum):
     PAYMENT = "payment"

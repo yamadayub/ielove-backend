@@ -6,8 +6,8 @@ from datetime import datetime
 from typing import Dict, Any
 
 from app.auth.dependencies import get_db, get_current_user
-from app.models import User, Property, ListingItem, Transaction, BuyerProfile
-from app.enums import TransactionStatus, ListingStatus, TransferStatus
+from app.models import User, Property, ListingItem, Transaction, BuyerProfile, TransactionAuditLog, TransactionErrorLog
+from app.enums import TransactionStatus, ListingStatus, TransferStatus, ChangeType, ErrorType
 from app.schemas.transaction_schemas import (
     TransactionCheckResponse,
     PurchasedTransactionsResponse,
@@ -247,15 +247,69 @@ async def stripe_connect_webhook(request: Request, db: Session = Depends(get_db)
         # イベントタイプに基づいて処理
         if event["type"] == "transfer.created":
             transfer = event["data"]["object"]
-            # トランザクションの更新
-            transaction = db.query(Transaction).filter(
-                Transaction.payment_intent_id == transfer["source_transaction"]
-            ).first()
-            if transaction:
-                transaction.transfer_status = TransferStatus.PENDING
-                transaction.stripe_transfer_id = transfer["id"]
+            transfer_id = transfer.get("id")
+            transfer_status = transfer.get("status")
+            amount = transfer.get("amount")
+
+            try:
+                # トランザクションの更新
+                transaction = db.query(Transaction).filter(
+                    Transaction.payment_intent_id == transfer.get(
+                        "transfer_group")
+                ).first()
+
+                if transaction:
+                    # 現在のステータスを保存
+                    previous_status = transaction.transfer_status.value if transaction.transfer_status else None
+
+                    # トランザクション更新
+                    transaction.stripe_transfer_id = transfer_id
+                    # transfer.statusに基づいてステータス更新
+                    if transfer_status == stripe_service.STRIPE_TRANSFER_STATUS_PAID:
+                        transaction.transfer_status = TransferStatus.SUCCEEDED
+                    elif transfer_status == stripe_service.STRIPE_TRANSFER_STATUS_FAILED:
+                        transaction.transfer_status = TransferStatus.FAILED
+                    else:
+                        transaction.transfer_status = TransferStatus.PENDING
+
+                    transaction.updated_at = datetime.utcnow()
+
+                    # 監査ログの追加
+                    audit_log = TransactionAuditLog(
+                        transaction_id=transaction.id,
+                        field_name="transfer_status",
+                        old_value=previous_status,
+                        new_value=transaction.transfer_status.value,
+                        changed_by_user_id=None,  # システムによる変更
+                        change_type=ChangeType.SYSTEM,
+                        change_reason=f"Transfer status updated from Stripe webhook: {event['type']}",
+                        change_metadata={
+                            "stripe_transfer_id": transfer_id,
+                            "transfer_status": transfer_status,
+                            "amount": amount
+                        }
+                    )
+                    db.add(audit_log)
+                    db.commit()
+                    print(
+                        f"Transfer created and status updated: {transfer_id} -> {transfer_status}")
+
+            except Exception as e:
+                error_log = TransactionErrorLog(
+                    transaction_id=transaction.id if transaction else None,
+                    error_type=ErrorType.SYSTEM_ERROR,
+                    error_code="TRANSFER_UPDATE_ERROR",
+                    error_message=str(e),
+                    error_details={
+                        "event_type": event["type"],
+                        "transfer_id": transfer_id
+                    }
+                )
+                db.add(error_log)
                 db.commit()
-                print(f"Transfer created: {transfer['id']}")
+                print(f"Error processing transfer event: {str(e)}")
+                raise HTTPException(
+                    status_code=500, detail="Internal server error")
 
         elif event["type"] == "transfer.updated":
             transfer = event["data"]["object"]
@@ -263,13 +317,33 @@ async def stripe_connect_webhook(request: Request, db: Session = Depends(get_db)
                 Transaction.stripe_transfer_id == transfer["id"]
             ).first()
             if transaction:
-                # transferの状態に応じてステータスを更新
-                if transfer["status"] == "paid":
-                    transaction.transfer_status = TransferStatus.COMPLETED
-                elif transfer["status"] == "failed":
+                previous_status = transaction.transfer_status.value if transaction.transfer_status else None
+
+                if transfer["status"] == stripe_service.STRIPE_TRANSFER_STATUS_PAID:
+                    transaction.transfer_status = TransferStatus.SUCCEEDED
+                elif transfer["status"] == stripe_service.STRIPE_TRANSFER_STATUS_FAILED:
                     transaction.transfer_status = TransferStatus.FAILED
-                elif transfer["status"] == "pending":
+                elif transfer["status"] == stripe_service.STRIPE_TRANSFER_STATUS_PENDING:
                     transaction.transfer_status = TransferStatus.PENDING
+
+                transaction.updated_at = datetime.utcnow()
+
+                # 監査ログの追加
+                audit_log = TransactionAuditLog(
+                    transaction_id=transaction.id,
+                    field_name="transfer_status",
+                    old_value=previous_status,
+                    new_value=transaction.transfer_status.value,
+                    changed_by_user_id=None,
+                    change_type=ChangeType.SYSTEM,
+                    change_reason=f"Transfer status updated from Stripe webhook: {event['type']}",
+                    change_metadata={
+                        "stripe_transfer_id": transfer["id"],
+                        "transfer_status": transfer["status"],
+                        "amount": transfer.get("amount")
+                    }
+                )
+                db.add(audit_log)
                 db.commit()
                 print(
                     f"Transfer updated: {transfer['id']} -> {transfer['status']}")
@@ -280,7 +354,25 @@ async def stripe_connect_webhook(request: Request, db: Session = Depends(get_db)
                 Transaction.stripe_transfer_id == transfer["id"]
             ).first()
             if transaction:
+                previous_status = transaction.transfer_status.value if transaction.transfer_status else None
                 transaction.transfer_status = TransferStatus.FAILED
+                transaction.updated_at = datetime.utcnow()
+
+                # 監査ログの追加
+                audit_log = TransactionAuditLog(
+                    transaction_id=transaction.id,
+                    field_name="transfer_status",
+                    old_value=previous_status,
+                    new_value=transaction.transfer_status.value,
+                    changed_by_user_id=None,
+                    change_type=ChangeType.SYSTEM,
+                    change_reason=f"Transfer reversed from Stripe webhook",
+                    change_metadata={
+                        "stripe_transfer_id": transfer["id"],
+                        "amount": transfer.get("amount")
+                    }
+                )
+                db.add(audit_log)
                 db.commit()
                 print(f"Transfer reversed: {transfer['id']}")
 

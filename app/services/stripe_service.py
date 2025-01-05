@@ -342,7 +342,7 @@ class StripeService:
             print("[DEBUG] Creating Stripe checkout session")
             session = stripe.checkout.Session.create(
                 mode='payment',
-                submit_type='pay',  # 支払いの意図を明確にする
+                submit_type='pay',
                 payment_method_types=['card'],
                 line_items=[{
                     'price_data': {
@@ -356,11 +356,17 @@ class StripeService:
                     'quantity': 1,
                 }],
                 payment_intent_data={
-                    'application_fee_amount': platform_fee,  # プラットフォーム手数料
+                    'application_fee_amount': platform_fee,
                     'transfer_data': {
-                        'destination': seller_profile.stripe_account_id,  # 送金先のConnect アカウント
+                        'destination': seller_profile.stripe_account_id,
                     },
-                    'capture_method': 'automatic',  # 支払い確認後に自動でキャプチャする
+                    'setup_future_usage': 'off_session',
+                    'capture_method': 'automatic',
+                },
+                customer=buyer_profile.stripe_customer_id,
+                customer_update={
+                    'address': 'auto',
+                    'name': 'auto',
                 },
                 metadata={
                     'listing_id': str(listing_item.id),
@@ -369,13 +375,13 @@ class StripeService:
                     'platform_fee': str(platform_fee),
                     'transfer_amount': str(transfer_amount)
                 },
-                customer=buyer_profile.stripe_customer_id,
                 success_url=f"{settings.BASE_URL}/checkout/success",
                 cancel_url=f"{settings.BASE_URL}/checkout/cancel",
             )
 
             print(f"[DEBUG] Created session: {session.id}")
             print(f"[DEBUG] Payment Intent ID: {session.payment_intent}")
+            print(f"[DEBUG] Full session object: {session}")
 
             if not session.payment_intent:
                 print("[ERROR] No payment_intent_id in created session")

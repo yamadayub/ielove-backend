@@ -268,44 +268,71 @@ class StripeService:
             # メタデータの取得
             metadata = session.get("metadata", {})
             payment_intent_id = session.get("payment_intent")
-            charge_id = session.get("latest_charge")
-            print(f"[DEBUG] Payment Intent ID: {payment_intent_id}")
-            print(f"[DEBUG] Charge ID: {charge_id}")
+            charge_id = None
 
-            # charge_idでトランザクションを検索
-            print(
-                f"[DEBUG] Searching for transaction with charge_id: {charge_id}")
-            transaction = db.query(Transaction).filter(
-                Transaction.charge_id == charge_id
-            ).first()
+            # payment_intentからcharge_idを取得
+            if payment_intent_id:
+                payment_intent = stripe.PaymentIntent.retrieve(
+                    payment_intent_id)
+                charge_id = payment_intent.latest_charge
+                print(f"[DEBUG] Payment Intent ID: {payment_intent_id}")
+                print(f"[DEBUG] Charge ID: {charge_id}")
 
-            if transaction:
-                print(f"[DEBUG] Found existing transaction: {transaction.id}")
-                # 既存のトランザクションを更新
-                transaction.payment_intent_id = payment_intent_id
-                transaction.transaction_status = TransactionStatus.COMPLETED
-                transaction.payment_status = PaymentStatus.SUCCEEDED
-                transaction.updated_at = datetime.utcnow()
-                print("[DEBUG] Updated existing transaction")
-            else:
-                print("[DEBUG] Creating new transaction")
+            if not charge_id:
+                print("[DEBUG] No charge_id found, creating new transaction")
                 # 新規トランザクション作成
                 transaction = Transaction(
                     listing_id=int(metadata["listing_id"]),
                     buyer_id=int(metadata["buyer_id"]),
                     seller_id=int(metadata["seller_id"]),
                     payment_intent_id=payment_intent_id,
-                    charge_id=charge_id,
                     total_amount=session.get("amount_total"),
                     platform_fee=int(metadata["platform_fee"]),
                     seller_amount=int(metadata["transfer_amount"]),
-                    transaction_status=TransactionStatus.COMPLETED,
+                    transaction_status=TransactionStatus.PENDING,
                     payment_status=PaymentStatus.SUCCEEDED,
+                    transfer_status=TransferStatus.PENDING,
                     created_at=datetime.utcnow(),
                     updated_at=datetime.utcnow()
                 )
                 db.add(transaction)
                 print("[DEBUG] Added new transaction")
+            else:
+                # charge_idでトランザクションを検索
+                print(
+                    f"[DEBUG] Searching for transaction with charge_id: {charge_id}")
+                transaction = db.query(Transaction).filter(
+                    Transaction.charge_id == charge_id
+                ).first()
+
+                if transaction:
+                    print(
+                        f"[DEBUG] Found existing transaction: {transaction.id}")
+                    # 既存のトランザクションを更新
+                    transaction.payment_intent_id = payment_intent_id
+                    transaction.payment_status = PaymentStatus.SUCCEEDED
+                    transaction.updated_at = datetime.utcnow()
+                    print("[DEBUG] Updated existing transaction")
+                else:
+                    print("[DEBUG] Creating new transaction with charge_id")
+                    # 新規トランザクション作成
+                    transaction = Transaction(
+                        listing_id=int(metadata["listing_id"]),
+                        buyer_id=int(metadata["buyer_id"]),
+                        seller_id=int(metadata["seller_id"]),
+                        payment_intent_id=payment_intent_id,
+                        charge_id=charge_id,
+                        total_amount=session.get("amount_total"),
+                        platform_fee=int(metadata["platform_fee"]),
+                        seller_amount=int(metadata["transfer_amount"]),
+                        transaction_status=TransactionStatus.PENDING,
+                        payment_status=PaymentStatus.SUCCEEDED,
+                        transfer_status=TransferStatus.PENDING,
+                        created_at=datetime.utcnow(),
+                        updated_at=datetime.utcnow()
+                    )
+                    db.add(transaction)
+                    print("[DEBUG] Added new transaction with charge_id")
 
             print("[DEBUG] Committing transaction")
             db.commit()

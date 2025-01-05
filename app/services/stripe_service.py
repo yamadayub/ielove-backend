@@ -338,6 +338,8 @@ class StripeService:
             platform_fee = int(total_amount * 0.3)
             transfer_amount = total_amount - platform_fee
 
+            # Stripeセッションを作成
+            print("[DEBUG] Creating Stripe checkout session")
             session = stripe.checkout.Session.create(
                 mode='payment',
                 payment_method_types=['card'],
@@ -370,13 +372,19 @@ class StripeService:
                 cancel_url=f"{settings.BASE_URL}/checkout/cancel",
             )
 
+            print(
+                f"[DEBUG] Created session with payment_intent_id: {session.payment_intent}")
+
+            if not session.payment_intent:
+                raise ValueError("No payment_intent_id in created session")
+
             # トランザクションレコードを作成
             print("[DEBUG] Creating initial transaction record")
             transaction = Transaction(
                 listing_id=listing_item.id,
                 buyer_id=buyer_profile.id,
                 seller_id=seller_profile.id,
-                payment_intent_id=session.payment_intent,
+                payment_intent_id=session.payment_intent,  # 必ずpayment_intent_idが存在することを確認
                 total_amount=total_amount,
                 platform_fee=platform_fee,
                 seller_amount=transfer_amount,
@@ -389,7 +397,7 @@ class StripeService:
             db.add(transaction)
             db.commit()
             print(
-                f"[DEBUG] Created transaction record with payment_intent_id: {session.payment_intent}")
+                f"[DEBUG] Created transaction record with ID: {transaction.id}")
 
             return {
                 'sessionId': session.id,
@@ -397,6 +405,7 @@ class StripeService:
             }
         except stripe.error.StripeError as e:
             db.rollback()
+            print(f"[ERROR] Stripe error in create_checkout_session: {str(e)}")
             raise HTTPException(
                 status_code=500,
                 detail={
@@ -406,6 +415,7 @@ class StripeService:
             )
         except Exception as e:
             db.rollback()
+            print(f"[ERROR] System error in create_checkout_session: {str(e)}")
             raise HTTPException(
                 status_code=500,
                 detail={

@@ -160,28 +160,133 @@ class StripeService:
         このイベントは売り手への送金が完了したことを示す
         """
         try:
-            # source_transactionからpayment_intent_idを取得
+            # 基本情報の取得
+            transfer_id = transfer.get("id")
+            is_reversed = transfer.get("reversed", False)
             source_transaction = transfer.get("source_transaction")
+
+            print(f"[DEBUG] Transfer Created - Basic Info:")
+            print(f"[DEBUG] transfer_id: {transfer_id}")
+            print(f"[DEBUG] is_reversed: {is_reversed}")
+            print(f"[DEBUG] source_transaction: {source_transaction}")
+            print(f"[DEBUG] Full transfer object: {transfer}")
+
+            # source_transactionからpayment_intent_idを取得
             if source_transaction.startswith('ch_'):
-                charge = stripe.Charge.retrieve(source_transaction)
-                payment_intent_id = charge.payment_intent
+                print(
+                    f"[DEBUG] Source transaction is a charge ID: {source_transaction}")
+                try:
+                    charge = stripe.Charge.retrieve(source_transaction)
+                    print(f"[DEBUG] Retrieved charge object: {charge}")
+                    payment_intent_id = charge.get('payment_intent')
+                    print(
+                        f"[DEBUG] Extracted payment_intent_id from charge: {payment_intent_id}")
+
+                    if not payment_intent_id:
+                        print(
+                            f"[WARNING] No payment_intent found for charge {source_transaction}")
+                        return
+                except stripe.error.StripeError as e:
+                    print(f"[ERROR] Error retrieving charge: {str(e)}")
+                    return
             else:
                 payment_intent_id = source_transaction
+                print(
+                    f"[DEBUG] Using source_transaction as payment_intent_id: {payment_intent_id}")
 
-            # トランザクションの更新
+            # トランザクションの検索
+            print(
+                f"[DEBUG] Searching for transaction with payment_intent_id: {payment_intent_id}")
             transaction = db.query(Transaction).filter(
                 Transaction.payment_intent_id == payment_intent_id
             ).first()
 
             if transaction:
-                transaction.stripe_transfer_id = transfer.get("id")
-                transaction.transfer_status = TransferStatus.SUCCEEDED
+                print(f"[DEBUG] Found existing transaction: {transaction.id}")
+                # 既存のトランザクションを更新
+                old_status = transaction.transfer_status.value if transaction.transfer_status else None
+                print(f"[DEBUG] Current transfer_status: {old_status}")
+
+                transaction.transfer_status = TransferStatus.SUCCEEDED if not is_reversed else TransferStatus.FAILED
+                transaction.stripe_transfer_id = transfer_id
                 transaction.updated_at = datetime.utcnow()
-                db.commit()
+
+                print(
+                    f"[DEBUG] Updated transfer_status to: {transaction.transfer_status.value}")
+
+                # 監査ログを追加
+                audit_log = TransactionAuditLog(
+                    transaction_id=transaction.id,
+                    change_type=ChangeType.TRANSFER_STATUS_UPDATED,
+                    old_value=old_status,
+                    new_value=transaction.transfer_status.value,
+                    created_at=datetime.utcnow()
+                )
+                db.add(audit_log)
+                print(
+                    f"[DEBUG] Added audit log for status change: {old_status} -> {transaction.transfer_status.value}")
+            else:
+                print("[DEBUG] No existing transaction found, creating new one")
+                # 新規トランザクションを作成
+                try:
+                    # Stripeから必要な情報を取得
+                    charge = stripe.Charge.retrieve(source_transaction)
+                    print(
+                        f"[DEBUG] Retrieved charge for new transaction: {charge}")
+
+                    checkout_session_id = charge.metadata.get(
+                        "checkout_session_id")
+                    print(
+                        f"[DEBUG] Found checkout_session_id in charge metadata: {checkout_session_id}")
+
+                    session = stripe.checkout.Session.retrieve(
+                        checkout_session_id)
+                    print(f"[DEBUG] Retrieved checkout session: {session}")
+
+                    metadata = session.metadata
+                    print(f"[DEBUG] Session metadata: {metadata}")
+
+                    transaction = Transaction(
+                        listing_id=int(metadata["listing_id"]),
+                        buyer_id=int(metadata["buyer_id"]),
+                        seller_id=int(metadata["seller_id"]),
+                        payment_intent_id=payment_intent_id,
+                        stripe_transfer_id=transfer_id,
+                        total_amount=charge.amount,
+                        platform_fee=int(metadata["platform_fee"]),
+                        seller_amount=int(metadata["transfer_amount"]),
+                        transaction_status=TransactionStatus.COMPLETED,
+                        payment_status=PaymentStatus.SUCCEEDED,
+                        transfer_status=TransferStatus.SUCCEEDED if not is_reversed else TransferStatus.FAILED,
+                        created_at=datetime.utcnow(),
+                        updated_at=datetime.utcnow()
+                    )
+                    db.add(transaction)
+                    print("[DEBUG] Created new transaction object")
+                except stripe.error.StripeError as e:
+                    print(
+                        f"[ERROR] Error creating transaction from Stripe data: {str(e)}")
+                    return
+
+            print("[DEBUG] Committing transaction to database")
+            db.commit()
+            print("[DEBUG] Successfully committed transaction")
 
         except Exception as e:
             db.rollback()
-            print(f"Error in handle_transfer_created: {str(e)}")
+            print(f"[ERROR] Error in handle_transfer_created: {str(e)}")
+            print(f"[ERROR] Full error details: {repr(e)}")
+            if transaction and transaction.id:
+                error_log = TransactionErrorLog(
+                    transaction_id=transaction.id,
+                    error_type=ErrorType.WEBHOOK_PROCESSING_ERROR,
+                    error_message=str(e),
+                    created_at=datetime.utcnow()
+                )
+                db.add(error_log)
+                db.commit()
+                print(
+                    f"[DEBUG] Added error log for transaction {transaction.id}")
             raise
 
     async def handle_checkout_completed(

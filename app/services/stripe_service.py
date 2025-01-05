@@ -341,9 +341,7 @@ class StripeService:
             # Stripeセッションを作成
             print("[DEBUG] Creating Stripe checkout session")
             session = stripe.checkout.Session.create(
-                mode='payment',
-                submit_type='pay',
-                payment_method_types=['card'],
+                mode="payment",
                 line_items=[{
                     'price_data': {
                         'currency': 'jpy',
@@ -355,6 +353,12 @@ class StripeService:
                     },
                     'quantity': 1,
                 }],
+                payment_intent_data={
+                    'application_fee_amount': platform_fee,
+                    'transfer_data': {
+                        'destination': seller_profile.stripe_account_id,
+                    },
+                },
                 customer=buyer_profile.stripe_customer_id,
                 customer_update={
                     'address': 'auto',
@@ -366,14 +370,6 @@ class StripeService:
                     'seller_id': str(seller_profile.id),
                     'platform_fee': str(platform_fee),
                     'transfer_amount': str(transfer_amount)
-                },
-                payment_intent_data={
-                    'setup_future_usage': 'off_session',
-                    'capture_method': 'automatic',
-                    'application_fee_amount': platform_fee,
-                    'transfer_data': {
-                        'destination': seller_profile.stripe_account_id,
-                    }
                 },
                 success_url=f"{settings.BASE_URL}/checkout/success",
                 cancel_url=f"{settings.BASE_URL}/checkout/cancel",

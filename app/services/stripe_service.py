@@ -370,11 +370,10 @@ class StripeService:
                 payment_intent_data={
                     'setup_future_usage': 'off_session',
                     'capture_method': 'automatic',
-                },
-                # Connect経由の支払い設定
-                application_fee_amount=platform_fee,
-                transfer_data={
-                    'destination': seller_profile.stripe_account_id,
+                    'application_fee_amount': platform_fee,
+                    'transfer_data': {
+                        'destination': seller_profile.stripe_account_id,
+                    }
                 },
                 success_url=f"{settings.BASE_URL}/checkout/success",
                 cancel_url=f"{settings.BASE_URL}/checkout/cancel",

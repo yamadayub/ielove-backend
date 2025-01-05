@@ -251,6 +251,11 @@ async def stripe_connect_webhook(request: Request, db: Session = Depends(get_db)
             transfer_status = transfer.get("status")
             amount = transfer.get("amount")
 
+            print(
+                f"[DEBUG] Transfer Created Event - Full Transfer Object: {transfer}")
+            print(f"[DEBUG] Transfer Status: {transfer_status}")
+            print(f"[DEBUG] Transfer Group: {transfer.get('transfer_group')}")
+
             try:
                 # トランザクションの更新
                 transaction = db.query(Transaction).filter(
@@ -267,10 +272,14 @@ async def stripe_connect_webhook(request: Request, db: Session = Depends(get_db)
                     # transfer.statusに基づいてステータス更新
                     if transfer_status == stripe_service.STRIPE_TRANSFER_STATUS_PAID:
                         transaction.transfer_status = TransferStatus.SUCCEEDED
+                        print(
+                            f"Transfer completed successfully: {transfer_id}")
                     elif transfer_status == stripe_service.STRIPE_TRANSFER_STATUS_FAILED:
                         transaction.transfer_status = TransferStatus.FAILED
+                        print(f"Transfer failed: {transfer_id}")
                     else:
                         transaction.transfer_status = TransferStatus.PENDING
+                        print(f"Transfer is pending: {transfer_id}")
 
                     transaction.updated_at = datetime.utcnow()
 
@@ -291,8 +300,6 @@ async def stripe_connect_webhook(request: Request, db: Session = Depends(get_db)
                     )
                     db.add(audit_log)
                     db.commit()
-                    print(
-                        f"Transfer created and status updated: {transfer_id} -> {transfer_status}")
 
             except Exception as e:
                 error_log = TransactionErrorLog(

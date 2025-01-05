@@ -248,7 +248,6 @@ async def stripe_connect_webhook(request: Request, db: Session = Depends(get_db)
         if event["type"] == "transfer.created":
             transfer = event["data"]["object"]
             transfer_id = transfer.get("id")
-            transfer_status = transfer.get("status")
             is_reversed = transfer.get("reversed", False)
             source_transaction = transfer.get("source_transaction")
 
@@ -261,15 +260,11 @@ async def stripe_connect_webhook(request: Request, db: Session = Depends(get_db)
                 # 現在のステータスを保存
                 old_status = transaction.transfer_status.value if transaction.transfer_status else None
 
-                # transferのstatusとreversedフラグに基づいてステータスを更新
+                # reversedフラグに基づいてステータスを更新
                 if is_reversed:
                     transaction.transfer_status = TransferStatus.FAILED
-                elif transfer_status == "paid":
-                    transaction.transfer_status = TransferStatus.COMPLETED
-                elif transfer_status == "failed":
-                    transaction.transfer_status = TransferStatus.FAILED
                 else:
-                    transaction.transfer_status = TransferStatus.PENDING
+                    transaction.transfer_status = TransferStatus.COMPLETED
 
                 transaction.updated_at = datetime.utcnow()
 

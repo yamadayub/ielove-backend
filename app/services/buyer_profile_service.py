@@ -9,6 +9,7 @@ from app.crud.buyer_profile import buyer_profile
 
 class BuyerProfileService:
     async def get_or_create_buyer_profile(
+        self,
         db: Session,
         user: User
     ) -> BuyerProfile:

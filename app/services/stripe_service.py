@@ -342,6 +342,7 @@ class StripeService:
             print("[DEBUG] Creating Stripe checkout session")
             session = stripe.checkout.Session.create(
                 mode='payment',
+                submit_type='pay',  # 支払いの意図を明確にする
                 payment_method_types=['card'],
                 line_items=[{
                     'price_data': {
@@ -359,6 +360,7 @@ class StripeService:
                     'transfer_data': {
                         'destination': seller_profile.stripe_account_id,  # 送金先のConnect アカウント
                     },
+                    'capture_method': 'automatic',  # 支払い確認後に自動でキャプチャする
                 },
                 metadata={
                     'listing_id': str(listing_item.id),
@@ -372,10 +374,12 @@ class StripeService:
                 cancel_url=f"{settings.BASE_URL}/checkout/cancel",
             )
 
-            print(
-                f"[DEBUG] Created session with payment_intent_id: {session.payment_intent}")
+            print(f"[DEBUG] Created session: {session.id}")
+            print(f"[DEBUG] Payment Intent ID: {session.payment_intent}")
 
             if not session.payment_intent:
+                print("[ERROR] No payment_intent_id in created session")
+                print("[DEBUG] Full session object:", session)
                 raise ValueError("No payment_intent_id in created session")
 
             # トランザクションレコードを作成
@@ -384,7 +388,7 @@ class StripeService:
                 listing_id=listing_item.id,
                 buyer_id=buyer_profile.id,
                 seller_id=seller_profile.id,
-                payment_intent_id=session.payment_intent,  # 必ずpayment_intent_idが存在することを確認
+                payment_intent_id=session.payment_intent,
                 total_amount=total_amount,
                 platform_fee=platform_fee,
                 seller_amount=transfer_amount,
@@ -416,6 +420,7 @@ class StripeService:
         except Exception as e:
             db.rollback()
             print(f"[ERROR] System error in create_checkout_session: {str(e)}")
+            print(f"[ERROR] Full error details: {repr(e)}")
             raise HTTPException(
                 status_code=500,
                 detail={

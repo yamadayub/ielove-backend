@@ -174,8 +174,17 @@ class StripeService:
                 f"Source transaction (payment_intent_id): {source_transaction}")
 
             # 既存のトランザクションを検索
+            # source_transactionがcharge_idの場合、payment_intentを取得
+            if source_transaction.startswith('ch_'):
+                charge = stripe.Charge.retrieve(source_transaction)
+                payment_intent_id = charge.payment_intent
+                print(
+                    f"Retrieved payment_intent_id from charge: {payment_intent_id}")
+            else:
+                payment_intent_id = source_transaction
+
             transaction = db.query(Transaction).filter(
-                Transaction.payment_intent_id == source_transaction
+                Transaction.payment_intent_id == payment_intent_id
             ).first()
 
             if transaction:

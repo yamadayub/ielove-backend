@@ -292,6 +292,8 @@ class StripeService:
                     platform_fee=int(metadata["platform_fee"]),
                     seller_amount=int(metadata["transfer_amount"]),
                     transaction_status=TransactionStatus.COMPLETED,
+                    payment_status=PaymentStatus.SUCCEEDED,
+                    transfer_status=TransferStatus.PENDING,
                     created_at=datetime.utcnow(),
                     updated_at=datetime.utcnow()
                 )
@@ -311,6 +313,7 @@ class StripeService:
                     # 既存のトランザクションを更新
                     transaction.payment_intent_id = payment_intent_id
                     transaction.transaction_status = TransactionStatus.COMPLETED
+                    transaction.payment_status = PaymentStatus.SUCCEEDED
                     transaction.updated_at = datetime.utcnow()
                     print("[DEBUG] Updated existing transaction")
                 else:
@@ -326,6 +329,8 @@ class StripeService:
                         platform_fee=int(metadata["platform_fee"]),
                         seller_amount=int(metadata["transfer_amount"]),
                         transaction_status=TransactionStatus.COMPLETED,
+                        payment_status=PaymentStatus.SUCCEEDED,
+                        transfer_status=TransferStatus.PENDING,
                         created_at=datetime.utcnow(),
                         updated_at=datetime.utcnow()
                     )

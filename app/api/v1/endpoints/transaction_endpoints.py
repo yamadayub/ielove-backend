@@ -220,6 +220,10 @@ async def stripe_webhook(
             session = event["data"]["object"]
             await stripe_service.handle_checkout_completed(db, session)
             return {"status": "success"}
+        elif event["type"] == "payment_intent.succeeded":
+            payment_intent = event["data"]["object"]
+            await stripe_service.handle_payment_intent_succeeded(db, payment_intent)
+            return {"status": "success"}
         else:
             # 他のイベントタイプは正常に受け取ったことだけを通知
             print(f"Received unhandled event type: {event['type']}")
@@ -247,41 +251,11 @@ async def stripe_connect_webhook(request: Request, db: Session = Depends(get_db)
         # イベントタイプに基づいて処理
         if event["type"] == "transfer.created":
             transfer = event["data"]["object"]
-            transfer_id = transfer.get("id")
-            is_reversed = transfer.get("reversed", False)
-            source_transaction = transfer.get("source_transaction")
-
-            # 関連するトランザクションを検索（payment_intent_idで検索）
-            transaction = db.query(Transaction).filter(
-                Transaction.payment_intent_id == source_transaction
-            ).first()
-
-            if transaction:
-                # 現在のステータスを保存
-                old_status = transaction.transfer_status.value if transaction.transfer_status else None
-
-                # reversedフラグに基づいてステータスを更新
-                if is_reversed:
-                    transaction.transfer_status = TransferStatus.FAILED
-                else:
-                    transaction.transfer_status = TransferStatus.SUCCEEDED
-
-                transaction.updated_at = datetime.utcnow()
-
-                # 監査ログを追加
-                audit_log = TransactionAuditLog(
-                    transaction_id=transaction.id,
-                    change_type=ChangeType.TRANSFER_STATUS_UPDATED,
-                    old_value=old_status,
-                    new_value=transaction.transfer_status.value,
-                    created_at=datetime.utcnow()
-                )
-                db.add(audit_log)
-                db.commit()
-
+            await stripe_service.handle_transfer_created(db, transfer)
             return {"status": "success"}
-
-        return {"status": "received"}
+        else:
+            print(f"Received unhandled event type: {event['type']}")
+            return {"status": "received"}
 
     except ValueError as e:
         print(f"Webhook error: {str(e)}")

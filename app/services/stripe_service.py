@@ -198,7 +198,7 @@ class StripeService:
                 # 監査ログを追加
                 audit_log = TransactionAuditLog(
                     transaction_id=transaction.id,
-                    change_type=ChangeType.TRANSFER_STATUS_UPDATED,
+                    change_type=ChangeType.WEBHOOK,
                     old_value=old_status,
                     new_value=transaction.transfer_status.value,
                     created_at=datetime.utcnow()
@@ -246,7 +246,7 @@ class StripeService:
             if transaction and transaction.id:
                 error_log = TransactionErrorLog(
                     transaction_id=transaction.id,
-                    error_type=ErrorType.WEBHOOK_PROCESSING_ERROR,
+                    error_type=ErrorType.SYSTEM_ERROR,
                     error_message=str(e),
                     created_at=datetime.utcnow()
                 )
@@ -448,7 +448,7 @@ class StripeService:
                     # 監査ログを追加
                     audit_log = TransactionAuditLog(
                         transaction_id=transaction.id,
-                        change_type=ChangeType.PAYMENT_STATUS_UPDATED,
+                        change_type=ChangeType.WEBHOOK,
                         old_value=transaction.payment_status.value if transaction.payment_status else None,
                         new_value=PaymentStatus.SUCCEEDED.value,
                         created_at=datetime.utcnow()

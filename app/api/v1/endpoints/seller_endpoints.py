@@ -40,7 +40,7 @@ async def start_onboarding(
     # Stripeアカウントが未作成の場合は作成
     if not seller.stripe_account_id:
         business_profile = {
-            "name": seller.company_name or current_user.name,
+            "name": current_user.name,
             "support_email": current_user.email,
         }
         account = await stripe_service.create_connect_account(

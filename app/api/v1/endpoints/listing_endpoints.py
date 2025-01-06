@@ -133,8 +133,7 @@ async def get_listing_items_by_property(
         if include_seller:
             response_item["seller"] = {
                 "id": item.seller.id,
-                "name": item.seller.user.name,
-                "company_name": item.seller.company_name
+                "name": item.seller.user.name
             }
         else:
             response_item["seller"] = None

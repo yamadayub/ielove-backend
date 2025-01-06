@@ -280,14 +280,8 @@ class SellerProfile(Base):
 
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    company_name = Column(String, nullable=True)
-    representative_name = Column(String, nullable=True)
-    postal_code = Column(String, nullable=True)
-    address = Column(String, nullable=True)
-    phone_number = Column(String, nullable=True)
-    business_registration_number = Column(String, nullable=True)
-    tax_registration_number = Column(String, nullable=True)
 
+    # Stripe関連フィールド
     stripe_account_id = Column(String, unique=True, nullable=True)
     stripe_account_status = Column(String, nullable=True, default="pending")
     stripe_account_type = Column(String, nullable=True, default="standard")
@@ -299,6 +293,7 @@ class SellerProfile(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
+    # Relationships
     user = relationship("User", back_populates="seller_profile")
     listings = relationship("ListingItem", back_populates="seller")
     transactions = relationship(

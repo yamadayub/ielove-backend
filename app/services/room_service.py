@@ -2,18 +2,51 @@ from sqlalchemy.orm import Session
 from app.crud.room import room as room_crud
 from app.schemas import RoomSchema
 from typing import Optional, List, Literal
-from fastapi import HTTPException
-from app.models import Room
+from fastapi import HTTPException, status
+from app.models import Room, ProductCategory
 from sqlalchemy.orm import joinedload
 from app.crud.product import product as product_crud
 from app.crud.image import image as image_crud
 from app.models import Product
+from app.schemas import ProductSchema
 
 
 class RoomService:
     def create_room(self, db: Session, room_data: RoomSchema) -> RoomSchema:
-        """部屋情報を作成する"""
-        return room_crud.create(db, obj_in=room_data)
+        """部屋情報とデフォルトの製品を作成する"""
+        try:
+            # 部屋情報を作成
+            db_room = room_crud.create(db, obj_in=room_data)
+
+            # プロダクトカテゴリを取得
+            product_categories = db.query(ProductCategory).filter(
+                ProductCategory.id.in_([1, 2, 3, 4, 5])
+            ).all()
+
+            category_dict = {cat.id: cat.name for cat in product_categories}
+
+            # デフォルトのプロダクトを作成
+            for category_id in [1, 2, 3, 4, 5]:
+                if category_id in category_dict:
+                    product_data = ProductSchema(
+                        name=category_dict[category_id],
+                        room_id=db_room.id,
+                        product_category_id=category_id,
+                        description=f"{category_dict[category_id]}の説明"
+                    )
+                    product_crud.create(db, obj_in=product_data)
+
+            # 変更をコミット
+            db.commit()
+            db.refresh(db_room)
+            return db_room
+
+        except Exception as e:
+            db.rollback()
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=str(e)
+            )
 
     def get_rooms(
         self,

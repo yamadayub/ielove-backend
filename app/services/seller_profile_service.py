@@ -14,14 +14,12 @@ def register_seller(
 ) -> seller_profile_schemas.SellerProfileSchema:
     """
     Sellerプロフィールを作成し、ユーザーのroleを更新する
+    既存のSellerプロフィールが存在する場合は、そのプロフィールを返す
     """
     # 既存のSellerプロフィールをチェック
     existing_seller = seller_profile.get_by_user_id(db, current_user.id)
     if existing_seller:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Seller profile already exists"
-        )
+        return existing_seller
 
     # 入力データの準備
     seller_data_dict = seller_data.model_dump(exclude={"id"})

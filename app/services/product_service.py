@@ -34,7 +34,8 @@ class ProductService:
             .options(
                 joinedload(Product.specifications),
                 joinedload(Product.dimensions),
-                joinedload(Product.room).joinedload(Room.property)
+                joinedload(Product.room).joinedload(Room.property),
+                joinedload(Product.product_category)
         )\
             .filter(Product.id == product_id)\
             .first()
@@ -52,6 +53,7 @@ class ProductService:
             "description": product.description,
             "room_id": product.room_id,
             "product_category_id": product.product_category_id,
+            "product_category_name": product.product_category.name if product.product_category else None,
             "manufacturer_name": product.manufacturer_name,
             "product_code": product.product_code,
             "catalog_url": product.catalog_url,

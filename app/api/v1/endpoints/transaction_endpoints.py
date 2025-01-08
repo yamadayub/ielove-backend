@@ -5,7 +5,7 @@ from sqlalchemy import and_
 from datetime import datetime
 from typing import Dict, Any
 
-from app.auth.dependencies import get_db, get_current_user
+from app.auth.dependencies import get_db, get_current_user, get_current_user_optional
 from app.models import User, Property, ListingItem, Transaction, BuyerProfile, TransactionAuditLog, TransactionErrorLog
 from app.enums import TransactionStatus, ListingStatus, TransferStatus, ChangeType, ErrorType
 from app.schemas.transaction_schemas import (
@@ -79,16 +79,21 @@ async def get_purchased_transactions(
 @router.get("/check", response_model=TransactionCheckResponse)
 async def check_transaction_status(
     property_id: int = Query(..., description="確認対象の物件ID"),
-    current_user: User = Depends(get_current_user),
+    current_user: Optional[User] = Depends(get_current_user_optional),
     db: Session = Depends(get_db)
 ) -> TransactionCheckResponse:
     """
     指定された物件に対する取引状態を確認します。
+    未認証ユーザーの場合は未購入として扱います。
     """
     # 物件の存在確認
     property = db.query(Property).filter(Property.id == property_id).first()
     if not property:
         raise HTTPException(status_code=404, detail="Property not found")
+
+    # 未認証ユーザーの場合は未購入として扱う
+    if not current_user:
+        return TransactionCheckResponse(isPurchased=False)
 
     # BuyerProfileの取得
     buyer_profile = db.query(BuyerProfile).filter(

@@ -18,15 +18,27 @@ class RoomService:
             # 部屋情報を作成
             db_room = room_crud.create(db, obj_in=room_data)
 
+            # 部屋タイプごとのデフォルトプロダクトカテゴリID
+            room_product_categories = {
+                # 基本設備 + 窓 + ダイニングセット + ソファ
+                "リビングダイニング": [1, 2, 3, 4, 5, 6, 9, 10, 11],
+                "キッチン": [1, 2, 3, 4, 5, 7, 8],  # 基本設備 + キッチン + カップボード
+                "寝室": [1, 2, 3, 4, 5, 6, 12],  # 基本設備 + 窓 + ベッド
+                "トイレ": [1, 2, 3, 4, 5],  # 基本設備のみ
+                "洗面室": [1, 2, 3, 4, 5],  # 基本設備のみ
+                "風呂": [1, 2, 3, 4, 5],  # 基本設備のみ
+                "玄関": [1, 2, 3, 4, 5],  # 基本設備のみ
+                "廊下": [1, 2, 3, 4, 5]   # 基本設備のみ
+            }
+
             # プロダクトカテゴリを取得
-            product_categories = db.query(ProductCategory).filter(
-                ProductCategory.id.in_([1, 2, 3, 4, 5])
-            ).all()
+            all_categories = db.query(ProductCategory).all()
+            category_dict = {cat.id: cat.name for cat in all_categories}
 
-            category_dict = {cat.id: cat.name for cat in product_categories}
-
-            # デフォルトのプロダクトを作成
-            for category_id in [1, 2, 3, 4, 5]:
+            # 部屋名に対応するプロダクトを作成
+            category_ids = room_product_categories.get(
+                db_room.name, [1, 2, 3, 4, 5])
+            for category_id in category_ids:
                 if category_id in category_dict:
                     product_data = ProductSchema(
                         name=category_dict[category_id],

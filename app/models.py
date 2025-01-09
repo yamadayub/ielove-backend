@@ -204,8 +204,8 @@ class User(Base):
         "SellerProfile", back_populates="user", uselist=False)
     buyer_profile = relationship(
         "BuyerProfile", back_populates="user", uselist=False)
-    take_rates = relationship("TakeRate", foreign_keys=[
-                              TakeRate.user_id], back_populates="user")
+    take_rates = relationship(
+        "TakeRate", foreign_keys="[TakeRate.user_id]", back_populates="user")
 
 
 class BuyerProfile(Base):
@@ -447,10 +447,10 @@ class TakeRate(Base):
     user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     is_default = Column(Boolean, nullable=False, default=False)
     take_rate = Column(Numeric(5, 2), nullable=False)
-    date_from = Column(DateTime, nullable=False)
-    date_to = Column(DateTime, nullable=True)
-    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
-    updated_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+    date_from = Column(DateTime(timezone=True), nullable=False)
+    date_to = Column(DateTime(timezone=True), nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     created_by = Column(Integer, ForeignKey("users.id"), nullable=False)
     note = Column(String, nullable=True)
 

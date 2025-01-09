@@ -204,5 +204,33 @@ class ImageService:
             db.rollback()
             raise HTTPException(status_code=400, detail=str(e))
 
+    def update_image_type(self, db: Session, image_id: int, image_type: ImageType) -> Image:
+        """画像のタイプを更新する"""
+        image = image_crud.get(db, id=image_id)
+        if not image:
+            raise HTTPException(status_code=404, detail="Image not found")
+
+        try:
+            # 画像タイプを更新
+            update_data = ImageSchema(
+                id=image.id,
+                url=image.url,
+                s3_key=image.s3_key,
+                property_id=image.property_id,
+                room_id=image.room_id,
+                product_id=image.product_id,
+                image_type=image_type,
+                status=image.status,
+                created_at=image.created_at
+            )
+
+            updated_image = image_crud.update(
+                db, db_obj=image, obj_in=update_data)
+            return updated_image
+
+        except Exception as e:
+            db.rollback()
+            raise HTTPException(status_code=400, detail=str(e))
+
 
 image_service = ImageService()

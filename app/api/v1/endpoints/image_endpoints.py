@@ -5,7 +5,8 @@ from app.schemas.image_schemas import (
     ImageSchema,
     CreatePresignedUrlRequest,
     CreatePresignedUrlResponse,
-    ImageStatus
+    ImageStatus,
+    ImageType
 )
 from app.services.image_service import image_service
 from app.database import get_db
@@ -135,3 +136,19 @@ def set_as_main_image(
         room_id=room_id,
         product_id=product_id
     )
+
+
+@router.patch("/{image_id}/type", response_model=ImageSchema, summary="画像タイプを更新する")
+def update_image_type(
+    image_id: int,
+    image_type: ImageType = Body(..., example={"image_type": "SUB"}),
+    db: Session = Depends(get_db)
+):
+    """
+    画像のタイプを更新します。
+
+    Parameters:
+    - image_id: 画像ID
+    - image_type: 新しい画像タイプ（MAIN/SUB/PAID）
+    """
+    return image_service.update_image_type(db, image_id, image_type)

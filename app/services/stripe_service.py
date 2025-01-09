@@ -8,6 +8,7 @@ from enum import Enum
 from app.config import get_settings
 from app.models import Transaction, TransactionAuditLog, TransactionErrorLog, ListingItem
 from app.enums import TransactionStatus, PaymentStatus, TransferStatus, ChangeType, ErrorType
+from app.services.take_rate_service import take_rate_service
 
 settings = get_settings()
 
@@ -335,10 +336,14 @@ class StripeService:
     ) -> Dict[str, Any]:
         """Stripeのチェックアウトセッションを作成する"""
         try:
-            # 手数料計算（30%）
+            # 手数料計算
             total_amount = listing_item.price
-            platform_fee = int(total_amount * 0.3)
+            take_rate = await take_rate_service.get_take_rate(db, seller_profile.user_id)
+            platform_fee = int(total_amount * (take_rate / 100))
             transfer_amount = total_amount - platform_fee
+
+            print(
+                f"[DEBUG] Calculating fees - Take Rate: {take_rate}%, Platform Fee: {platform_fee}")
 
             # Stripeセッションを作成
             print("[DEBUG] Creating Stripe checkout session")

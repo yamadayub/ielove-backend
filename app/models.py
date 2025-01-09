@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Text, Float, Boolean, JSON, Enum, Index
+from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Text, Float, Boolean, JSON, Enum, Index, Numeric
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.database import Base
@@ -204,6 +204,8 @@ class User(Base):
         "SellerProfile", back_populates="user", uselist=False)
     buyer_profile = relationship(
         "BuyerProfile", back_populates="user", uselist=False)
+    take_rates = relationship("TakeRate", foreign_keys=[
+                              TakeRate.user_id], back_populates="user")
 
 
 class BuyerProfile(Base):
@@ -436,3 +438,22 @@ class TransactionErrorLog(Base):
 
     # Relationships
     transaction = relationship("Transaction", back_populates="error_logs")
+
+
+class TakeRate(Base):
+    __tablename__ = "take_rates"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    is_default = Column(Boolean, nullable=False, default=False)
+    take_rate = Column(Numeric(5, 2), nullable=False)
+    date_from = Column(DateTime, nullable=False)
+    date_to = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+    updated_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+    created_by = Column(Integer, ForeignKey("users.id"), nullable=False)
+    note = Column(String, nullable=True)
+
+    user = relationship("User", foreign_keys=[
+                        user_id], back_populates="take_rates")
+    created_by_user = relationship("User", foreign_keys=[created_by])

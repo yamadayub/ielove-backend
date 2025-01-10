@@ -163,9 +163,9 @@ class ProductDimension(Base):
     id = Column(Integer, Sequence(
         'product_dimensions_id_seq'), primary_key=True)
     product_id = Column(Integer, ForeignKey("products.id"), nullable=False)
-    dimension_type = Column(Enum(DimensionType), nullable=False)
-    value = Column(Float, nullable=False)
-    unit = Column(String, nullable=False)
+    dimension_type = Column(String, nullable=True)
+    value = Column(Float, nullable=True)
+    unit = Column(String, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     product = relationship("Product", back_populates="dimensions")

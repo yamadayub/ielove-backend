@@ -25,72 +25,81 @@ from fastapi import status
 class PropertyService:
     def create_property(self, db: Session, property_data: PropertySchema) -> Property:
         """物件の基本情報と標準的な部屋、デフォルトの製品を作成する"""
+        # 物件の基本情報を作成（独立したトランザクション）
         try:
             # 物件の基本情報を作成
             db_property = property_crud.create(db, obj_in=property_data)
-
-            # デフォルトの部屋を作成
-            default_rooms = [
-                "リビングダイニング",
-                "キッチン",
-                "寝室",
-                "トイレ",
-                "洗面室",
-                "風呂",
-                "玄関",
-                "廊下"
-            ]
-
-            # 部屋タイプごとのデフォルトプロダクトカテゴリID
-            room_product_categories = {
-                # 基本設備 + 窓 + ダイニングセット + ソファ
-                "リビングダイニング": [1, 2, 3, 4, 5, 6, 9, 10, 11],
-                "キッチン": [1, 2, 3, 4, 5, 7, 8],  # 基本設備 + キッチン + カップボード
-                "寝室": [1, 2, 3, 4, 5, 6, 12],  # 基本設備 + 窓 + ベッド
-                "トイレ": [1, 2, 3, 4, 5],  # 基本設備のみ
-                "洗面室": [1, 2, 3, 4, 5],  # 基本設備のみ
-                "風呂": [1, 2, 3, 4, 5],  # 基本設備のみ
-                "玄関": [1, 2, 3, 4, 5],  # 基本設備のみ
-                "廊下": [1, 2, 3, 4, 5]   # 基本設備のみ
-            }
-
-            # プロダクトカテゴリを取得
-            all_categories = db.query(ProductCategory).all()
-            category_dict = {cat.id: cat.name for cat in all_categories}
-
-            for room_name in default_rooms:
-                # 部屋を作成
-                room_data = RoomSchema(
-                    name=room_name,
-                    property_id=db_property.id,
-                    description=f"{room_name}の説明"
-                )
-                db_room = room_crud.create(db, obj_in=room_data)
-
-                # その部屋に対応するプロダクトを作成
-                category_ids = room_product_categories.get(
-                    room_name, [1, 2, 3, 4, 5])
-                for category_id in category_ids:
-                    if category_id in category_dict:
-                        product_data = ProductSchema(
-                            name=category_dict[category_id],
-                            room_id=db_room.id,
-                            product_category_id=category_id,
-                            description=f"{category_dict[category_id]}の説明"
-                        )
-                        product_crud.create(db, obj_in=product_data)
-
-            # 変更をコミット
             db.commit()
-            db.refresh(db_property)
-            return db_property
-
         except Exception as e:
             db.rollback()
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail=str(e)
             )
+
+        # デフォルトの部屋を作成
+        default_rooms = [
+            "リビングダイニング",
+            "キッチン",
+            "寝室",
+            "トイレ",
+            "洗面室",
+            "風呂",
+            "玄関",
+            "廊下"
+        ]
+
+        # 部屋タイプごとのデフォルトプロダクトカテゴリID
+        room_product_categories = {
+            # 基本設備 + 窓 + ダイニングセット + ソファ
+            "リビングダイニング": [1, 2, 3, 4, 5, 6, 9, 10, 11],
+            "キッチン": [1, 2, 3, 4, 5, 7, 8],  # 基本設備 + キッチン + カップボード
+            "寝室": [1, 2, 3, 4, 5, 6, 12],  # 基本設備 + 窓 + ベッド
+            "トイレ": [1, 2, 3, 4, 5],  # 基本設備のみ
+            "洗面室": [1, 2, 3, 4, 5],  # 基本設備のみ
+            "風呂": [1, 2, 3, 4, 5],  # 基本設備のみ
+            "玄関": [1, 2, 3, 4, 5],  # 基本設備のみ
+            "廊下": [1, 2, 3, 4, 5]   # 基本設備のみ
+        }
+
+        # プロダクトカテゴリを取得
+        all_categories = db.query(ProductCategory).all()
+        category_dict = {cat.id: cat.name for cat in all_categories}
+
+        # 各部屋を作成（部屋ごとに独立したトランザクション）
+        for room_name in default_rooms:
+            try:
+                room_data = RoomSchema(
+                    name=room_name,
+                    property_id=db_property.id,
+                    description=f"{room_name}の説明"
+                )
+                db_room = room_crud.create(db, obj_in=room_data)
+                db.commit()
+
+                # その部屋の製品を作成（製品ごとに独立したトランザクション）
+                category_ids = room_product_categories.get(
+                    room_name, [1, 2, 3, 4, 5])
+                for category_id in category_ids:
+                    if category_id in category_dict:
+                        try:
+                            product_data = ProductSchema(
+                                name=category_dict[category_id],
+                                room_id=db_room.id,
+                                product_category_id=category_id,
+                                description=f"{category_dict[category_id]}の説明"
+                            )
+                            product_crud.create(db, obj_in=product_data)
+                            db.commit()
+                        except Exception as e:
+                            db.rollback()
+                            continue
+
+            except Exception as e:
+                db.rollback()
+                continue
+
+        return db_property
 
     def get_properties(self, db: Session, skip: int = 0, limit: int = 100) -> List[Property]:
         """
@@ -310,8 +319,12 @@ class PropertyService:
             raise HTTPException(status_code=404, detail="Property not found")
 
         try:
-            db.delete(db_property)
+            # 論理削除を実装
+            from datetime import datetime
+            db_property.is_deleted = True
+            db_property.deleted_at = datetime.now()
             db.commit()
+            db.refresh(db_property)
             return {"message": "Property deleted successfully"}
         except Exception as e:
             db.rollback()
@@ -338,6 +351,10 @@ class PropertyService:
         Returns:
             Tuple[List[Property], int]: 物件リストと総件数のタプル
         """
+        # 論理削除されていない物件のみを取得するようにフィルターを追加
+        if filters is None:
+            filters = {}
+        filters['is_deleted'] = False
         return property_crud.get_by_user_with_filters(
             db=db,
             user_id=user_id,

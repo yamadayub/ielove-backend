@@ -4,6 +4,7 @@ from app.schemas import PropertySchema
 from .base import BaseCRUD
 from typing import List, Optional, Dict, Any, Tuple
 from sqlalchemy.sql import desc
+from datetime import datetime
 
 
 class PropertyCRUD(BaseCRUD[Property, PropertySchema, PropertySchema]):
@@ -27,9 +28,16 @@ class PropertyCRUD(BaseCRUD[Property, PropertySchema, PropertySchema]):
         return db_obj
 
     def delete(self, db: Session, *, id: int) -> Property:
+        """
+        指定されたIDの物件を論理削除する
+        """
         obj = db.query(self.model).get(id)
-        db.delete(obj)
-        db.commit()
+        if obj:
+            obj.is_deleted = True
+            obj.deleted_at = datetime.now()
+            db.add(obj)
+            db.commit()
+            db.refresh(obj)
         return obj
 
     def get_by_user(self, db: Session, user_id: str, skip: int = 0, limit: int = 100):
@@ -42,30 +50,20 @@ class PropertyCRUD(BaseCRUD[Property, PropertySchema, PropertySchema]):
 
     def get_multi(self, db: Session, *, skip: int = 0, limit: int = 100) -> List[Property]:
         """
-        物件の一覧を取得する
-
-        Args:
-            db (Session): データベースセッション
-            skip (int): スキップする件数
-            limit (int): 取得する最大件数
-
-        Returns:
-            List[Property]: 物件のリスト
+        物件の一覧を取得する（論理削除されていないもののみ）
         """
-        return db.query(Property).offset(skip).limit(limit).all()
+        return db.query(self.model).filter(
+            self.model.is_deleted == False
+        ).offset(skip).limit(limit).all()
 
     def get(self, db: Session, id: int) -> Optional[Property]:
         """
-        指定されたIDの物件を取得する
-
-        Args:
-            db (Session): データベースセッション
-            id (int): 物件ID
-
-        Returns:
-            Optional[Property]: 物件オブジェクト。存在しない場合はNone
+        指定されたIDの物件を取得する（論理削除されていないもののみ）
         """
-        return db.query(Property).filter(Property.id == id).first()
+        return db.query(self.model).filter(
+            self.model.id == id,
+            self.model.is_deleted == False
+        ).first()
 
     def get_by_user_with_filters(
         self,
@@ -76,19 +74,12 @@ class PropertyCRUD(BaseCRUD[Property, PropertySchema, PropertySchema]):
         filters: Dict[str, Any] = None
     ) -> Tuple[List[Property], int]:
         """
-        指定されたユーザーIDの物件一覧をフィルター条件付きで取得する
-
-        Args:
-            db: データベースセッション
-            user_id: ユーザーID
-            skip: スキップする件数
-            limit: 取得する最大件数
-            filters: フィルター条件
-
-        Returns:
-            Tuple[List[Property], int]: 物件リストと総件数のタプル
+        指定されたユーザーIDの物件一覧をフィルター条件付きで取得する（論理削除されていないもののみ）
         """
-        query = db.query(self.model).filter(self.model.user_id == user_id)
+        query = db.query(self.model).filter(
+            self.model.user_id == user_id,
+            self.model.is_deleted == False
+        )
 
         if filters:
             if filters.get("property_type"):

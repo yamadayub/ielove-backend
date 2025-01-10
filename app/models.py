@@ -22,8 +22,7 @@ from app.enums import (
 class Company(Base):
     __tablename__ = "companies"
 
-    id = Column(Integer, Sequence(
-        'companies_id_seq', cycle=True), primary_key=True)
+    id = Column(Integer, Sequence('companies_id_seq'), primary_key=True)
     name = Column(String, nullable=False)
     company_type = Column(Enum(CompanyType), nullable=False)
     description = Column(Text)
@@ -43,8 +42,7 @@ class Company(Base):
 class Property(Base):
     __tablename__ = "properties"
 
-    id = Column(Integer, Sequence(
-        'properties_id_seq', cycle=True), primary_key=True)
+    id = Column(Integer, Sequence('properties_id_seq'), primary_key=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     name = Column(String, nullable=False)
     description = Column(Text)
@@ -62,6 +60,8 @@ class Property(Base):
     construction_company_id = Column(
         Integer, ForeignKey("companies.id"), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+    is_deleted = Column(Boolean, default=False, nullable=False)
+    deleted_at = Column(DateTime(timezone=True), nullable=True)
 
     user = relationship("User", back_populates="properties")
     design_company = relationship("Company",
@@ -81,8 +81,7 @@ class Property(Base):
 class Room(Base):
     __tablename__ = "rooms"
 
-    id = Column(Integer, Sequence(
-        'rooms_id_seq', cycle=True), primary_key=True)
+    id = Column(Integer, Sequence('rooms_id_seq'), primary_key=True)
     property_id = Column(Integer, ForeignKey("properties.id"), nullable=False)
     name = Column(String, nullable=False)
     description = Column(Text)
@@ -113,8 +112,7 @@ class ProductCategory(Base):
 class Product(Base):
     __tablename__ = "products"
 
-    id = Column(Integer, Sequence(
-        'products_id_seq', cycle=True), primary_key=True)
+    id = Column(Integer, Sequence('products_id_seq'), primary_key=True)
     room_id = Column(Integer, ForeignKey("rooms.id"), nullable=False)
     product_category_id = Column(Integer,
                                  ForeignKey("product_categories.id"),
@@ -145,7 +143,7 @@ class ProductSpecification(Base):
     __tablename__ = "product_specifications"
 
     id = Column(Integer, Sequence(
-        'product_specifications_id_seq', cycle=True), primary_key=True)
+        'product_specifications_id_seq'), primary_key=True)
     product_id = Column(Integer, ForeignKey("products.id"), nullable=False)
     spec_type = Column(String, nullable=False)
     spec_value = Column(String, nullable=False)
@@ -163,7 +161,7 @@ class ProductDimension(Base):
     __tablename__ = "product_dimensions"
 
     id = Column(Integer, Sequence(
-        'product_dimensions_id_seq', cycle=True), primary_key=True)
+        'product_dimensions_id_seq'), primary_key=True)
     product_id = Column(Integer, ForeignKey("products.id"), nullable=False)
     dimension_type = Column(Enum(DimensionType), nullable=False)
     value = Column(Float, nullable=False)
@@ -176,7 +174,7 @@ class ProductDimension(Base):
 class Image(Base):
     __tablename__ = "images"
 
-    id = Column(Integer, Sequence('images_id_seq', cycle=True),
+    id = Column(Integer, Sequence('images_id_seq'),
                 primary_key=True, index=True)
     url = Column(String, nullable=False)
     description = Column(Text)
@@ -196,8 +194,7 @@ class Image(Base):
 class User(Base):
     __tablename__ = "users"
 
-    id = Column(Integer, Sequence(
-        'users_id_seq', cycle=True), primary_key=True)
+    id = Column(Integer, Sequence('users_id_seq'), primary_key=True)
     clerk_user_id = Column(String, unique=True, nullable=False)
     email = Column(String, unique=True, nullable=False)
     name = Column(String, nullable=False)
@@ -224,8 +221,7 @@ class BuyerProfile(Base):
               'stripe_customer_id', unique=True),
     )
 
-    id = Column(Integer, Sequence(
-        'buyer_profiles_id_seq', cycle=True), primary_key=True)
+    id = Column(Integer, Sequence('buyer_profiles_id_seq'), primary_key=True)
     user_id = Column(Integer, ForeignKey("users.id"),
                      unique=True, nullable=False)
 
@@ -264,7 +260,7 @@ class SavedPaymentMethod(Base):
     )
 
     id = Column(Integer, Sequence(
-        'saved_payment_methods_id_seq', cycle=True), primary_key=True)
+        'saved_payment_methods_id_seq'), primary_key=True)
     buyer_profile_id = Column(Integer, ForeignKey(
         "buyer_profiles.id"), nullable=False)
 
@@ -291,8 +287,7 @@ class SavedPaymentMethod(Base):
 class SellerProfile(Base):
     __tablename__ = "seller_profiles"
 
-    id = Column(Integer, Sequence(
-        'seller_profiles_id_seq', cycle=True), primary_key=True)
+    id = Column(Integer, Sequence('seller_profiles_id_seq'), primary_key=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
 
     # Stripe関連フィールド
@@ -325,8 +320,7 @@ class ListingItem(Base):
         Index('ix_listing_items_product_status', 'product_id', 'status'),
     )
 
-    id = Column(Integer, Sequence(
-        'listing_items_id_seq', cycle=True), primary_key=True)
+    id = Column(Integer, Sequence('listing_items_id_seq'), primary_key=True)
     seller_id = Column(Integer, ForeignKey(
         "seller_profiles.id"), nullable=False)
     title = Column(String, nullable=False)
@@ -364,8 +358,7 @@ class Transaction(Base):
         Index('ix_transactions_seller_created', 'seller_id', 'created_at'),
     )
 
-    id = Column(Integer, Sequence(
-        'transactions_id_seq', cycle=True), primary_key=True)
+    id = Column(Integer, Sequence('transactions_id_seq'), primary_key=True)
     buyer_id = Column(Integer, ForeignKey("buyer_profiles.id"), nullable=False)
     seller_id = Column(Integer, ForeignKey(
         "seller_profiles.id"), nullable=False)
@@ -409,7 +402,7 @@ class TransactionAuditLog(Base):
     __tablename__ = "transaction_audit_logs"
 
     id = Column(Integer, Sequence(
-        'transaction_audit_logs_id_seq', cycle=True), primary_key=True)
+        'transaction_audit_logs_id_seq'), primary_key=True)
     transaction_id = Column(Integer, ForeignKey(
         "transactions.id"), nullable=False)
     field_name = Column(String, nullable=False)
@@ -438,7 +431,7 @@ class TransactionErrorLog(Base):
     )
 
     id = Column(Integer, Sequence(
-        'transaction_error_logs_id_seq', cycle=True), primary_key=True)
+        'transaction_error_logs_id_seq'), primary_key=True)
     transaction_id = Column(Integer, ForeignKey(
         "transactions.id"), nullable=True)
     error_type = Column(Enum(ErrorType), nullable=False)
@@ -459,7 +452,7 @@ class TransactionErrorLog(Base):
 class TakeRate(Base):
     __tablename__ = "take_rates"
 
-    id = Column(Integer, Sequence('take_rates_id_seq', cycle=True),
+    id = Column(Integer, Sequence('take_rates_id_seq'),
                 primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     is_default = Column(Boolean, nullable=False, default=False)

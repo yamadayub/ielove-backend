@@ -35,7 +35,7 @@ def get_presigned_url(
         - product_id: 製品ID（オプション）
         - image_type: 画像タイプ（main/sub/temp）
     """
-    return image_service.get_upload_url(db, request)
+    return image_service.create_presigned_url(db, request)
 
 
 @router.patch("/{image_id}/status", response_model=ImageSchema, summary="画像のステータスを更新する")
@@ -67,6 +67,7 @@ def get_images(
     property_id: Optional[int] = None,
     room_id: Optional[int] = None,
     product_id: Optional[int] = None,
+    product_specification_id: Optional[int] = None,
     include_children: bool = True,
     db: Session = Depends(get_db)
 ):
@@ -78,19 +79,22 @@ def get_images(
     - property_id: 物件ID（オプション）
     - room_id: 部屋ID（オプション）
     - product_id: 製品ID（オプション）
+    - product_specification_id: 製品仕様ID（オプション）
     - include_children: 下位階層の画像を含めるか（デフォルト: True）
 
     Note:
-    - property_idが指定された場合: 物件、その部屋、製品の画像を取得
-    - room_idが指定された場合: 部屋とその製品の画像を取得
-    - product_idが指定された場合: 製品の画像のみを取得
-    - 複数指定された場合は、より上位の階層（property > room > product）が優先されます
+    - property_idが指定された場合: 物件、その部屋、製品、製品仕様の画像を取得
+    - room_idが指定された場合: 部屋とその製品、製品仕様の画像を取得
+    - product_idが指定された場合: 製品とその製品仕様の画像を取得
+    - product_specification_idが指定された場合: 製品仕様の画像のみを取得
+    - 複数指定された場合は、より上位の階層（property > room > product > product_specification）が優先されます
     """
     return image_service.get_images(
         db,
         property_id=property_id,
         room_id=room_id,
         product_id=product_id,
+        product_specification_id=product_specification_id,
         include_children=include_children
     )
 
@@ -110,23 +114,25 @@ def set_as_main_image(
     property_id: Optional[int] = None,
     room_id: Optional[int] = None,
     product_id: Optional[int] = None,
+    product_specification_id: Optional[int] = None,
     db: Session = Depends(get_db)
 ):
     """
     指定された画像をメイン画像として設定します。
     既存のメイン画像がある場合は、自動的にサブ画像に変更されます。
-    property_id, room_id, product_idのいずれか1つを指定する必要があります。
+    property_id, room_id, product_id, product_specification_idのいずれか1つを指定する必要があります。
 
     Parameters:
     - image_id: 画像ID
     - property_id: 物件ID（オプション）
     - room_id: 部屋ID（オプション）
     - product_id: 製品ID（オプション）
+    - product_specification_id: 製品仕様ID（オプション）
     """
-    if sum(1 for x in [property_id, room_id, product_id] if x is not None) != 1:
+    if sum(1 for x in [property_id, room_id, product_id, product_specification_id] if x is not None) != 1:
         raise HTTPException(
             status_code=400,
-            detail="Exactly one of property_id, room_id, or product_id must be specified"
+            detail="Exactly one of property_id, room_id, product_id, or product_specification_id must be specified"
         )
 
     return image_service.set_as_main_image(
@@ -134,7 +140,8 @@ def set_as_main_image(
         image_id=image_id,
         property_id=property_id,
         room_id=room_id,
-        product_id=product_id
+        product_id=product_id,
+        product_specification_id=product_specification_id
     )
 
 

@@ -12,7 +12,8 @@ from app.services.product_service import product_service
 from app.database import get_db
 from app.auth.dependencies import get_current_user
 from app.schemas.user_schemas import UserSchema
-from app.models import Product, Room, ProductCategory
+from app.models import Product, Room, ProductCategory, ProductSpecification
+from app.crud.product import product as product_crud
 
 router = APIRouter(
     prefix="/products",
@@ -126,3 +127,38 @@ def get_products_by_property(
         return []
 
     return [PropertyProductsResponse.from_orm(product) for product in products]
+
+
+@router.put("/{product_id}/specifications", response_model=List[ProductSpecificationSchema])
+def update_product_specifications(
+    product_id: int,
+    specifications: List[ProductSpecificationSchema],
+    db: Session = Depends(get_db)
+):
+    # 製品の存在確認
+    product = product_crud.get(db, id=product_id)
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found")
+
+    # 既存の仕様を更新または新規作成
+    for spec in specifications:
+        if spec.id:  # 既存の仕様の場合
+            db_spec = db.query(ProductSpecification).get(spec.id)
+            if db_spec and db_spec.product_id == product_id:
+                # 既存の仕様を更新
+                for key, value in spec.dict(exclude_unset=True).items():
+                    setattr(db_spec, key, value)
+        else:  # 新規の仕様の場合
+            db_spec = ProductSpecification(
+                product_id=product_id,
+                spec_type=spec.spec_type,
+                spec_value=spec.spec_value
+            )
+            db.add(db_spec)
+
+    db.commit()
+
+    # 更新された仕様一覧を返す
+    return db.query(ProductSpecification).filter(
+        ProductSpecification.product_id == product_id
+    ).all()

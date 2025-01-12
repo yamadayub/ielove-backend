@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import List, Optional, Dict, Tuple
 from sqlalchemy.orm import Session
 from app.models import Image
 from app.crud.image import image as image_crud
@@ -14,57 +14,122 @@ from app.utils.s3 import create_presigned_url, delete_s3_object
 from app.config import get_settings
 import uuid
 from fastapi import HTTPException
+import boto3
 
 settings = get_settings()
 
 
 class ImageService:
-    def get_upload_url(self, db: Session, request: CreatePresignedUrlRequest) -> CreatePresignedUrlResponse:
-        """プリサインドURLを生成し、一時的な画像レコードを作成"""
+    def __init__(self):
+        self.s3_client = boto3.client(
+            's3',
+            aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
+            aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
+            region_name=settings.AWS_REGION
+        )
+
+    def create_presigned_url(
+        self,
+        db: Session,
+        request: CreatePresignedUrlRequest
+    ) -> CreatePresignedUrlResponse:
+        """
+        画像アップロード用の署名付きURLを生成し、画像メタデータを作成する
+
+        Parameters:
+        - db: データベースセッション
+        - request: プリサインドURL生成リクエスト
+
+        Returns:
+        - CreatePresignedUrlResponse: 署名付きURLとメタデータを含むレスポンス
+
+        Raises:
+        - HTTPException: S3の操作やデータベースの操作が失敗した場合
+        """
         try:
-            unique_id = str(uuid.uuid4())
-            key = f"temp/{unique_id}/{request.file_name}"
+            # S3メタデータの作成
+            metadata = {
+                'property_id': str(request.property_id) if request.property_id else '',
+                'room_id': str(request.room_id) if request.room_id else '',
+                'product_id': str(request.product_id) if request.product_id else '',
+                'product_specification_id': str(request.product_specification_id) if request.product_specification_id else '',
+                'image_type': request.image_type.value if request.image_type else ImageType.SUB.value,
+                'description': request.description if request.description else ''
+            }
 
-            # プリサインドURL生成
-            presigned_url = create_presigned_url(
-                bucket=settings.AWS_S3_BUCKET,
-                key=key,
-                content_type=request.content_type
-            )
+            # S3キーの生成
+            key = f"uploads/{uuid.uuid4()}/{request.file_name}"
 
-            # 画像レコード作成
-            image_data = ImageSchema(
-                url=f"https://{settings.AWS_S3_BUCKET}.s3.{settings.AWS_REGION}.amazonaws.com/{key}",
-                s3_key=key,
+            # S3パラメータの設定
+            params = {
+                'Bucket': settings.AWS_S3_BUCKET,
+                'Key': key,
+                'ContentType': request.content_type,
+                'Metadata': metadata
+            }
+
+            try:
+                # プリサインドURLの生成
+                upload_url = self.s3_client.generate_presigned_url(
+                    'put_object',
+                    Params=params,
+                    ExpiresIn=3600
+                )
+            except Exception as e:
+                raise HTTPException(
+                    status_code=500,
+                    detail=f"Failed to generate presigned URL: {str(e)}"
+                )
+
+            # 画像URLの生成
+            image_url = f"https://{settings.AWS_S3_BUCKET}.s3.{settings.AWS_REGION}.amazonaws.com/{key}"
+
+            try:
+                # 画像レコードの作成
+                image = image_crud.create(
+                    db,
+                    obj_in=ImageSchema(
+                        url=image_url,
+                        s3_key=key,
+                        property_id=request.property_id,
+                        room_id=request.room_id,
+                        product_id=request.product_id,
+                        product_specification_id=request.product_specification_id,
+                        image_type=request.image_type or ImageType.SUB,
+                        description=request.description,
+                        status=ImageStatus.PENDING
+                    )
+                )
+            except Exception as e:
+                raise HTTPException(
+                    status_code=500,
+                    detail=f"Failed to create image record: {str(e)}"
+                )
+
+            # ImageMetadataの作成
+            image_metadata = ImageMetadata(
                 property_id=request.property_id,
                 room_id=request.room_id,
                 product_id=request.product_id,
-                image_type=request.image_type,
+                product_specification_id=request.product_specification_id,
+                image_type=request.image_type or ImageType.SUB,
+                description=request.description,
                 status=ImageStatus.PENDING
             )
-            db_image = image_crud.create(db, obj_in=image_data)
 
-            # レスポンス作成
-            metadata = ImageMetadata(
-                property_id=db_image.property_id,
-                room_id=db_image.room_id,
-                product_id=db_image.product_id,
-                status=ImageStatus.PENDING,
-                image_type=db_image.image_type
-            )
-
+            # レスポンスの作成と返却
             return CreatePresignedUrlResponse(
-                upload_url=presigned_url,
-                image_id=db_image.id,
-                image_url=db_image.url,
-                image_metadata=metadata
+                upload_url=upload_url,
+                image_id=image.id,
+                image_url=image_url,
+                image_metadata=image_metadata
             )
 
         except Exception as e:
-            print(f"Error: {e}")
+            db.rollback()
             raise HTTPException(
-                status_code=400,
-                detail="プリサインドURL生成中にエラーが発生しました。"
+                status_code=500,
+                detail=f"Failed to process image upload request: {str(e)}"
             )
 
     def update_image_status(self, db: Session, image_id: int, status: ImageStatus) -> Image:
@@ -116,6 +181,7 @@ class ImageService:
         property_id: Optional[int] = None,
         room_id: Optional[int] = None,
         product_id: Optional[int] = None,
+        product_specification_id: Optional[int] = None,
         include_children: bool = True
     ) -> List[Image]:
         """
@@ -126,10 +192,11 @@ class ImageService:
             property_id: 物件ID（オプション）
             room_id: 部屋ID（オプション）
             product_id: 製品ID（オプション）
+            product_specification_id: 製品仕様ID（オプション）
             include_children: 下位階層の画像を含めるか（デフォルト: True）
 
         Note:
-            優先順位: property_id > room_id > product_id
+            優先順位: property_id > room_id > product_id > product_specification_id
         """
         if not include_children:
             # 指定された階層の画像のみを取得
@@ -137,7 +204,8 @@ class ImageService:
                 db,
                 property_id=property_id,
                 room_id=room_id,
-                product_id=product_id
+                product_id=product_id,
+                product_specification_id=product_specification_id
             )
 
         # include_children=Trueの場合の処理
@@ -150,10 +218,21 @@ class ImageService:
         elif product_id:
             # 製品の画像のみを取得
             return image_crud.get_images(db, product_id=product_id)
+        elif product_specification_id:
+            # 製品仕様の画像のみを取得
+            return image_crud.get_images(db, product_specification_id=product_specification_id)
 
         return []
 
-    def set_as_main_image(self, db: Session, image_id: int, property_id: Optional[int] = None, room_id: Optional[int] = None, product_id: Optional[int] = None) -> Image:
+    def set_as_main_image(
+        self,
+        db: Session,
+        image_id: int,
+        property_id: Optional[int] = None,
+        room_id: Optional[int] = None,
+        product_id: Optional[int] = None,
+        product_specification_id: Optional[int] = None
+    ) -> Image:
         """指定された画像をメイン画像に設定し、既存のメイン画像をサブに変更する"""
         # 対象の画像を取得
         image = image_crud.get(db, id=image_id)
@@ -170,6 +249,9 @@ class ImageService:
         if product_id and image.product_id != product_id:
             raise HTTPException(
                 status_code=400, detail="Image does not belong to the specified product")
+        if product_specification_id and image.product_specification_id != product_specification_id:
+            raise HTTPException(
+                status_code=400, detail="Image does not belong to the specified product specification")
 
         try:
             # 現在のメイン画像をサブに変更
@@ -187,6 +269,11 @@ class ImageService:
             elif product_id:
                 current_main = db.query(Image).filter(
                     Image.product_id == product_id,
+                    Image.image_type == ImageType.MAIN
+                ).first()
+            elif product_specification_id:
+                current_main = db.query(Image).filter(
+                    Image.product_specification_id == product_specification_id,
                     Image.image_type == ImageType.MAIN
                 ).first()
 

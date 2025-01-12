@@ -155,6 +155,8 @@ class ProductSpecification(Base):
 
     product = relationship("Product", back_populates="specifications")
     manufacturer = relationship("Company")
+    images = relationship(
+        "Image", back_populates="product_specification", cascade="all, delete-orphan")
 
 
 class ProductDimension(Base):
@@ -182,6 +184,8 @@ class Image(Base):
     property_id = Column(Integer, ForeignKey("properties.id"), nullable=True)
     room_id = Column(Integer, ForeignKey("rooms.id"), nullable=True)
     product_id = Column(Integer, ForeignKey("products.id"), nullable=True)
+    product_specification_id = Column(Integer, ForeignKey(
+        "product_specifications.id", ondelete="CASCADE"), nullable=True)
     image_type = Column(Enum(ImageType), nullable=True)
     status = Column(String, nullable=False, default='pending')
     created_at = Column(DateTime(timezone=True), server_default=func.now())
@@ -189,6 +193,8 @@ class Image(Base):
     property = relationship("Property", back_populates="images")
     room = relationship("Room", back_populates="images")
     product = relationship("Product", back_populates="images")
+    product_specification = relationship(
+        "ProductSpecification", back_populates="images")
 
 
 class User(Base):

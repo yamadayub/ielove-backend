@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from app.models import Image, Room, Product
+from app.models import Image, Room, Product, ProductSpecification
 from app.schemas import ImageSchema
 from .base import BaseCRUD
 from typing import List, Optional
@@ -19,23 +19,6 @@ class ImageCRUD(BaseCRUD[Image, ImageSchema, ImageSchema]):
         return True
 
     def create(self, db: Session, *, obj_in: ImageSchema) -> Image:
-        # 関連性のバリデーション
-        if obj_in.product_id:
-            # 製品が指定されている場合、部屋と物件も必須
-            product = db.query(Product).get(obj_in.product_id)
-            if not product:
-                raise HTTPException(
-                    status_code=404, detail="Product not found")
-            obj_in.room_id = product.room_id
-            room = db.query(Room).get(product.room_id)
-            obj_in.property_id = room.property_id
-        elif obj_in.room_id:
-            # 部屋が指定されている場合、物件も必須
-            room = db.query(Room).get(obj_in.room_id)
-            if not room:
-                raise HTTPException(status_code=404, detail="Room not found")
-            obj_in.property_id = room.property_id
-
         db_obj = Image(**obj_in.dict())
         db.add(db_obj)
         db.commit()

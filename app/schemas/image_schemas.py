@@ -21,6 +21,7 @@ class CreatePresignedUrlRequest(BaseModel):
     property_id: Optional[int] = None
     room_id: Optional[int] = None
     product_id: Optional[int] = None
+    product_specification_id: Optional[int] = None
     image_type: ImageType = ImageType.SUB
     description: Optional[str] = None
 
@@ -29,6 +30,7 @@ class ImageMetadata(BaseModel):
     property_id: Optional[int] = None
     room_id: Optional[int] = None
     product_id: Optional[int] = None
+    product_specification_id: Optional[int] = None
     status: ImageStatus
     image_type: ImageType
     description: Optional[str] = None
@@ -49,6 +51,7 @@ class ImageSchema(BaseModel):
     property_id: Optional[int] = None
     room_id: Optional[int] = None
     product_id: Optional[int] = None
+    product_specification_id: Optional[int] = None
     image_type: ImageType = ImageType.SUB
     status: ImageStatus = ImageStatus.PENDING
     created_at: Optional[datetime] = None

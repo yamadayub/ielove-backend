@@ -52,6 +52,24 @@ def get_property(
     return property
 
 
+@router.get("/{property_id}/is-mine", response_model=bool, summary="指定された物件が自分のものかを確認する")
+def is_my_property(
+    property_id: int,
+    db: Session = Depends(get_db),
+    current_user: UserSchema = Depends(get_current_user)
+):
+    """
+    指定された物件が現在のユーザーのものかを確認する
+
+    Parameters:
+    - property_id: 物件ID
+
+    Returns:
+    - bool: ユーザーの物件である場合はTrue、そうでない場合はFalse
+    """
+    return property_service.is_my_property(db, property_id, current_user.id)
+
+
 @router.get("/{property_id}/details", response_model=PropertyDetailsSchema, summary="物件の詳細情報を取得する")
 def get_property_details(
     property_id: int,

@@ -46,6 +46,24 @@ def get_room(room_id: int, db: Session = Depends(get_db)):
     return room
 
 
+@router.get("/{room_id}/is-mine", response_model=bool, summary="指定された部屋が自分の物件に属しているかを確認する")
+def is_my_room(
+    room_id: int,
+    db: Session = Depends(get_db),
+    current_user: UserSchema = Depends(get_current_user)
+):
+    """
+    指定された部屋が現在のユーザーの物件に属しているかを確認する
+
+    Parameters:
+    - room_id: 部屋ID
+
+    Returns:
+    - bool: ユーザーの物件に属する部屋である場合はTrue、そうでない場合はFalse
+    """
+    return room_service.is_my_room(db, room_id, current_user.id)
+
+
 @router.patch("/{room_id}", response_model=RoomSchema, summary="部屋情報を更新する")
 async def update_room(
     room_id: int,

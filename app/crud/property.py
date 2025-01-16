@@ -1,9 +1,9 @@
 from sqlalchemy.orm import Session
-from app.models import Property
+from app.models import Property, ListingItem, Transaction
 from app.schemas import PropertySchema
 from .base import BaseCRUD
 from typing import List, Optional, Dict, Any, Tuple
-from sqlalchemy.sql import desc
+from sqlalchemy.sql import desc, func
 from datetime import datetime
 
 
@@ -51,10 +51,36 @@ class PropertyCRUD(BaseCRUD[Property, PropertySchema, PropertySchema]):
     def get_multi(self, db: Session, *, skip: int = 0, limit: int = 100) -> List[Property]:
         """
         物件の一覧を取得する（論理削除されていないもののみ）
+        - 出品に対する購入件数が多い順
+        - 更新日付が新しい順
+        でソートする
         """
-        return db.query(self.model).filter(
-            self.model.is_deleted == False
-        ).offset(skip).limit(limit).all()
+        # サブクエリで各物件の購入件数を計算
+        purchase_count_subquery = (
+            db.query(
+                ListingItem.property_id,
+                func.count(Transaction.id).label('purchase_count')
+            )
+            .outerjoin(Transaction, Transaction.listing_id == ListingItem.id)
+            .filter(Transaction.transaction_status == 'COMPLETED')
+            .group_by(ListingItem.property_id)
+            .subquery()
+        )
+
+        # メインクエリ
+        return (
+            db.query(Property)
+            .outerjoin(purchase_count_subquery, Property.id == purchase_count_subquery.c.property_id)
+            .filter(Property.is_deleted == False)
+            .order_by(
+                func.coalesce(
+                    purchase_count_subquery.c.purchase_count, 0).desc(),
+                desc(Property.created_at)
+            )
+            .offset(skip)
+            .limit(limit)
+            .all()
+        )
 
     def get(self, db: Session, id: int) -> Optional[Property]:
         """

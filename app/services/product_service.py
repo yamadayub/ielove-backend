@@ -3,12 +3,11 @@ from app.crud.product import product as product_crud
 from app.schemas import ProductSchema
 from typing import Optional
 from fastapi import HTTPException
-from app.models import Product, ProductSpecification, ProductDimension
+from app.models import Product, Room, Property, ProductSpecification, ProductDimension
 from typing import List
 from app.schemas import ProductSpecificationSchema, ProductDimensionSchema
 from sqlalchemy.orm import joinedload
 from app.crud.image import image as image_crud
-from app.models import Room
 
 
 class ProductService:
@@ -285,6 +284,25 @@ class ProductService:
         except Exception as e:
             db.rollback()
             raise HTTPException(status_code=400, detail=str(e))
+
+    def is_my_product(self, db: Session, product_id: int, user_id: int) -> bool:
+        """
+        指定された製品が現在のユーザーの物件に属しているかを確認する
+
+        Args:
+            db (Session): データベースセッション
+            product_id (int): 製品ID
+            user_id (int): ユーザーID
+
+        Returns:
+            bool: ユーザーの物件に属する製品である場合はTrue、そうでない場合はFalse
+        """
+        product = db.query(Product).join(Room).join(Property).filter(
+            Product.id == product_id,
+            Property.user_id == user_id,
+            Property.is_deleted == False
+        ).first()
+        return product is not None
 
 
 product_service = ProductService()

@@ -43,8 +43,7 @@ class PropertyService:
             "キッチン",
             "寝室",
             "トイレ",
-            "洗面室",
-            "風呂",
+            "洗面室・浴室",
             "玄関",
             "廊下"
         ]
@@ -56,8 +55,7 @@ class PropertyService:
             "キッチン": [1, 2, 3, 4, 5, 7, 8],  # 基本設備 + キッチン + カップボード
             "寝室": [1, 2, 3, 4, 5, 6, 12],  # 基本設備 + 窓 + ベッド
             "トイレ": [1, 2, 3, 4, 5],  # 基本設備のみ
-            "洗面室": [1, 2, 3, 4, 5],  # 基本設備のみ
-            "風呂": [1, 2, 3, 4, 5],  # 基本設備のみ
+            "洗面室・浴室": [1, 2, 3, 4, 5, 14],  # 基本設備のみ + バス
             "玄関": [1, 2, 3, 4, 5],  # 基本設備のみ
             "廊下": [1, 2, 3, 4, 5]   # 基本設備のみ
         }
@@ -362,6 +360,25 @@ class PropertyService:
             limit=limit,
             filters=filters
         )
+
+    def is_my_property(self, db: Session, property_id: int, user_id: int) -> bool:
+        """
+        指定された物件が現在のユーザーのものかを確認する
+
+        Args:
+            db (Session): データベースセッション
+            property_id (int): 物件ID
+            user_id (int): ユーザーID
+
+        Returns:
+            bool: ユーザーの物件である場合はTrue、そうでない場合はFalse
+        """
+        property = db.query(Property).filter(
+            Property.id == property_id,
+            Property.user_id == user_id,
+            Property.is_deleted == False
+        ).first()
+        return property is not None
 
 
 property_service = PropertyService()

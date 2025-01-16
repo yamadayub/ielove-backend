@@ -1,13 +1,12 @@
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from app.crud.room import room as room_crud
 from app.schemas import RoomSchema
 from typing import Optional, List, Literal
 from fastapi import HTTPException, status
-from app.models import Room, ProductCategory
+from app.models import Room, ProductCategory, Property, Product
 from sqlalchemy.orm import joinedload
 from app.crud.product import product as product_crud
 from app.crud.image import image as image_crud
-from app.models import Product
 from app.schemas import ProductSchema
 
 
@@ -187,6 +186,25 @@ class RoomService:
             result["products"].append(product_data)
 
         return result
+
+    def is_my_room(self, db: Session, room_id: int, user_id: int) -> bool:
+        """
+        指定された部屋が現在のユーザーの物件に属しているかを確認する
+
+        Args:
+            db (Session): データベースセッション
+            room_id (int): 部屋ID
+            user_id (int): ユーザーID
+
+        Returns:
+            bool: ユーザーの物件に属する部屋である場合はTrue、そうでない場合はFalse
+        """
+        room = db.query(Room).join(Property).filter(
+            Room.id == room_id,
+            Property.user_id == user_id,
+            Property.is_deleted == False
+        ).first()
+        return room is not None
 
 
 room_service = RoomService()

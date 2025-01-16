@@ -52,6 +52,24 @@ def get_product(product_id: int, db: Session = Depends(get_db)):
     return product
 
 
+@router.get("/{product_id}/is-mine", response_model=bool, summary="指定された製品が自分の物件に属しているかを確認する")
+def is_my_product(
+    product_id: int,
+    db: Session = Depends(get_db),
+    current_user: UserSchema = Depends(get_current_user)
+):
+    """
+    指定された製品が現在のユーザーの物件に属しているかを確認する
+
+    Parameters:
+    - product_id: 製品ID
+
+    Returns:
+    - bool: ユーザーの物件に属する製品である場合はTrue、そうでない場合はFalse
+    """
+    return product_service.is_my_product(db, product_id, current_user.id)
+
+
 @router.patch("/{product_id}", response_model=ProductSchema, summary="製品情報を更新する")
 async def update_product(
     product_id: int,

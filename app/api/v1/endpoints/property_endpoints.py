@@ -121,6 +121,12 @@ async def update_property(
     - property_id: 更新する物件のID
     - property_data: 更新するデータ（部分的な更新が可能）
     """
+    # 所有者チェック
+    if not property_service.is_my_property(db, property_id, current_user.id):
+        raise HTTPException(
+            status_code=403,
+            detail="You don't have permission to update this property"
+        )
     return await property_service.update_property(db, property_id, property_data)
 
 

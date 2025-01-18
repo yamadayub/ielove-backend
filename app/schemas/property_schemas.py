@@ -19,9 +19,11 @@ class PropertySchema(BaseModel):
     building_area: Optional[float] = None
     floor_count: Optional[int] = None
     structure: Optional[str] = None
-    design_company_id: Optional[int] = None
-    construction_company_id: Optional[int] = None
+    design_company: Optional[str] = None
+    construction_company: Optional[str] = None
     created_at: Optional[datetime] = None
+    is_deleted: Optional[bool] = False
+    deleted_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True

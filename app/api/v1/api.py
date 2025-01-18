@@ -13,6 +13,7 @@ from app.api.v1.endpoints import (
     constants_endpoints,
     transaction_endpoints,
     product_category_endpoints,
+    drawing_endpoints
 )
 
 api_router = APIRouter()
@@ -31,3 +32,5 @@ api_router.include_router(listing_endpoints.router)
 api_router.include_router(constants_endpoints.router)
 api_router.include_router(transaction_endpoints.router)
 api_router.include_router(product_category_endpoints.router)
+api_router.include_router(drawing_endpoints.router,
+                          prefix="/drawings", tags=["drawings"])

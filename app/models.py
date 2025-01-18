@@ -29,15 +29,6 @@ class Company(Base):
     website = Column(String)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
-    designed_properties = relationship(
-        "Property",
-        back_populates="design_company",
-        foreign_keys="Property.design_company_id")
-    constructed_properties = relationship(
-        "Property",
-        back_populates="construction_company",
-        foreign_keys="Property.construction_company_id")
-
 
 class Property(Base):
     __tablename__ = "properties"
@@ -55,26 +46,20 @@ class Property(Base):
     building_area = Column(Float)
     floor_count = Column(Integer)
     structure = Column(Enum(StructureType))
-    design_company_id = Column(
-        Integer, ForeignKey("companies.id"), nullable=True)
-    construction_company_id = Column(
-        Integer, ForeignKey("companies.id"), nullable=True)
+    design_company = Column(String, nullable=True)
+    construction_company = Column(String, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     is_deleted = Column(Boolean, default=False, nullable=False)
     deleted_at = Column(DateTime(timezone=True), nullable=True)
 
+    # Relationships
     user = relationship("User", back_populates="properties")
-    design_company = relationship("Company",
-                                  back_populates="designed_properties",
-                                  foreign_keys=[design_company_id])
-    construction_company = relationship(
-        "Company",
-        back_populates="constructed_properties",
-        foreign_keys=[construction_company_id])
     rooms = relationship("Room", back_populates="property",
                          cascade="all, delete-orphan")
     images = relationship("Image", back_populates="property",
                           cascade="all, delete-orphan")
+    drawings = relationship("Drawing", back_populates="property",
+                            cascade="all, delete-orphan")
     listings = relationship("ListingItem", back_populates="property")
 
 
@@ -184,6 +169,7 @@ class Image(Base):
     property_id = Column(Integer, ForeignKey("properties.id"), nullable=True)
     room_id = Column(Integer, ForeignKey("rooms.id"), nullable=True)
     product_id = Column(Integer, ForeignKey("products.id"), nullable=True)
+    drawing_id = Column(Integer, ForeignKey("drawings.id"), nullable=True)
     product_specification_id = Column(Integer, ForeignKey(
         "product_specifications.id", ondelete="CASCADE"), nullable=True)
     image_type = Column(Enum(ImageType), nullable=True)
@@ -193,6 +179,7 @@ class Image(Base):
     property = relationship("Property", back_populates="images")
     room = relationship("Room", back_populates="images")
     product = relationship("Product", back_populates="images")
+    drawing = relationship("Drawing", back_populates="images")
     product_specification = relationship(
         "ProductSpecification", back_populates="images")
 
@@ -473,3 +460,18 @@ class TakeRate(Base):
     user = relationship("User", foreign_keys=[
                         user_id], back_populates="take_rates")
     created_by_user = relationship("User", foreign_keys=[created_by])
+
+
+class Drawing(Base):
+    __tablename__ = "drawings"
+
+    id = Column(Integer, Sequence('drawings_id_seq'), primary_key=True)
+    property_id = Column(Integer, ForeignKey("properties.id"), nullable=False)
+    name = Column(String, nullable=False)  # 平面図、断面図、立面図など
+    description = Column(Text)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    # Relationships
+    property = relationship("Property", back_populates="drawings")
+    images = relationship("Image", back_populates="drawing",
+                          cascade="all, delete-orphan")

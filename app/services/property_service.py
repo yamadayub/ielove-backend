@@ -27,7 +27,7 @@ class PropertyService:
         """物件の基本情報と標準的な部屋、デフォルトの製品を作成する"""
         # 物件の基本情報を作成（独立したトランザクション）
         try:
-            # 物件の基本情報を作成
+            # company_idフィールドの処理は不要になりました
             db_property = property_crud.create(db, obj_in=property_data)
             db.commit()
         except Exception as e:
@@ -163,8 +163,8 @@ class PropertyService:
             "building_area": property.building_area,
             "floor_count": property.floor_count,
             "structure": property.structure,
-            "design_company_id": property.design_company_id,
-            "construction_company_id": property.construction_company_id,
+            "design_company": property.design_company,
+            "construction_company": property.construction_company,
             "created_at": property.created_at,
             "images": property_images,
             "rooms": []
@@ -215,6 +215,7 @@ class PropertyService:
             # Create property record
             property_dict = property_data.model_dump(
                 exclude={'rooms', 'images'})
+            # company_idフィールドの処理は不要になりました
             db_property = property_crud.create(
                 db, obj_in=PropertySchema(**property_dict))
 
@@ -298,7 +299,12 @@ class PropertyService:
         if not db_property:
             raise HTTPException(status_code=404, detail="Property not found")
 
-        for field, value in property_data.model_dump(exclude_unset=True).items():
+        # 更新可能なフィールドのみを取得
+        update_data = property_data.model_dump(exclude_unset=True)
+
+        # company_idフィールドの処理は不要になりました
+
+        for field, value in update_data.items():
             setattr(db_property, field, value)
 
         try:

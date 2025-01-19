@@ -48,7 +48,9 @@ class Property(Base):
     structure = Column(Enum(StructureType))
     design_company = Column(String, nullable=True)
     construction_company = Column(String, nullable=True)
+    status = Column(String, nullable=False, default='default')
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     is_deleted = Column(Boolean, default=False, nullable=False)
     deleted_at = Column(DateTime(timezone=True), nullable=True)
 
@@ -70,7 +72,10 @@ class Room(Base):
     property_id = Column(Integer, ForeignKey("properties.id"), nullable=False)
     name = Column(String, nullable=False)
     description = Column(Text)
+    status = Column(String, nullable=False, default='default')
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    is_deleted = Column(Boolean, default=False, nullable=False)
 
     property = relationship("Property", back_populates="rooms")
     products = relationship("Product",
@@ -107,7 +112,10 @@ class Product(Base):
     product_code = Column(String, nullable=True)
     description = Column(Text, nullable=True)
     catalog_url = Column(String, nullable=True)
+    status = Column(String, nullable=False, default='default')
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    is_deleted = Column(Boolean, default=False, nullable=False)
 
     room = relationship("Room", back_populates="products")
     product_category = relationship("ProductCategory",

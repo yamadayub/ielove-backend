@@ -6,8 +6,12 @@ from app.auth.dependencies import get_current_user
 from app.crud.drawing import drawing as drawing_crud
 from app.schemas.drawing_schemas import DrawingSchema
 from app.schemas.user_schemas import UserSchema
+from app.services.drawing_service import drawing_service
 
-router = APIRouter()
+router = APIRouter(
+    prefix="/drawings",
+    tags=["drawings"]
+)
 
 
 @router.post("", response_model=DrawingSchema, summary="図面を作成する")
@@ -30,6 +34,24 @@ def get_drawing(
     if not drawing:
         raise HTTPException(status_code=404, detail="Drawing not found")
     return drawing
+
+
+@router.get("/{drawing_id}/is-mine", response_model=bool, summary="指定された図面が自分のものかを確認する")
+def is_my_drawing(
+    drawing_id: int,
+    db: Session = Depends(get_db),
+    current_user: UserSchema = Depends(get_current_user)
+):
+    """
+    指定された図面が現在のユーザーのものかを確認する
+
+    Parameters:
+    - drawing_id: 図面ID
+
+    Returns:
+    - bool: ユーザーの図面である場合はTrue、そうでない場合はFalse
+    """
+    return drawing_service.is_my_drawing(db, drawing_id, current_user.id)
 
 
 @router.get("/property/{property_id}", response_model=List[DrawingSchema], summary="物件の図面一覧を取得する")

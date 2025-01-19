@@ -22,6 +22,7 @@ class CreatePresignedUrlRequest(BaseModel):
     room_id: Optional[int] = None
     product_id: Optional[int] = None
     product_specification_id: Optional[int] = None
+    drawing_id: Optional[int] = None
     image_type: ImageType = ImageType.SUB
     description: Optional[str] = None
 

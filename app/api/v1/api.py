@@ -32,5 +32,4 @@ api_router.include_router(listing_endpoints.router)
 api_router.include_router(constants_endpoints.router)
 api_router.include_router(transaction_endpoints.router)
 api_router.include_router(product_category_endpoints.router)
-api_router.include_router(drawing_endpoints.router,
-                          prefix="/drawings", tags=["drawings"])
+api_router.include_router(drawing_endpoints.router)

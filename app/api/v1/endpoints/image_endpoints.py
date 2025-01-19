@@ -68,6 +68,7 @@ def get_images(
     room_id: Optional[int] = None,
     product_id: Optional[int] = None,
     product_specification_id: Optional[int] = None,
+    drawing_id: Optional[int] = None,
     include_children: bool = True,
     db: Session = Depends(get_db)
 ):
@@ -80,6 +81,7 @@ def get_images(
     - room_id: 部屋ID（オプション）
     - product_id: 製品ID（オプション）
     - product_specification_id: 製品仕様ID（オプション）
+    - drawing_id: 図面ID（オプション）
     - include_children: 下位階層の画像を含めるか（デフォルト: True）
 
     Note:
@@ -87,7 +89,8 @@ def get_images(
     - room_idが指定された場合: 部屋とその製品、製品仕様の画像を取得
     - product_idが指定された場合: 製品とその製品仕様の画像を取得
     - product_specification_idが指定された場合: 製品仕様の画像のみを取得
-    - 複数指定された場合は、より上位の階層（property > room > product > product_specification）が優先されます
+    - drawing_idが指定された場合: 図面の画像のみを取得
+    - 複数指定された場合は、より上位の階層（property > room > product > product_specification > drawing）が優先されます
     """
     return image_service.get_images(
         db,
@@ -95,6 +98,7 @@ def get_images(
         room_id=room_id,
         product_id=product_id,
         product_specification_id=product_specification_id,
+        drawing_id=drawing_id,
         include_children=include_children
     )
 

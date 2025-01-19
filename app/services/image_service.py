@@ -53,6 +53,7 @@ class ImageService:
                 'room_id': str(request.room_id) if request.room_id else '',
                 'product_id': str(request.product_id) if request.product_id else '',
                 'product_specification_id': str(request.product_specification_id) if request.product_specification_id else '',
+                'drawing_id': str(request.drawing_id) if request.drawing_id else '',
                 'image_type': request.image_type.value if request.image_type else ImageType.SUB.value,
                 'description': request.description if request.description else ''
             }
@@ -95,6 +96,7 @@ class ImageService:
                         room_id=request.room_id,
                         product_id=request.product_id,
                         product_specification_id=request.product_specification_id,
+                        drawing_id=request.drawing_id,
                         image_type=request.image_type or ImageType.SUB,
                         description=request.description,
                         status=ImageStatus.PENDING
@@ -182,6 +184,7 @@ class ImageService:
         room_id: Optional[int] = None,
         product_id: Optional[int] = None,
         product_specification_id: Optional[int] = None,
+        drawing_id: Optional[int] = None,
         include_children: bool = True
     ) -> List[Image]:
         """
@@ -193,13 +196,21 @@ class ImageService:
             room_id: 部屋ID（オプション）
             product_id: 製品ID（オプション）
             product_specification_id: 製品仕様ID（オプション）
+            drawing_id: 図面ID（オプション）
             include_children: 下位階層の画像を含めるか（デフォルト: True）
 
         Note:
-            優先順位: property_id > room_id > product_id > product_specification_id
+            drawing_idが指定された場合は、他のパラメータに関係なく図面の画像のみを返します。
+            property_idが指定された場合は、そのプロパティに紐づく全ての画像（図面の画像含む）を返します。
+            それ以外の場合は以下の優先順位で処理します：
+            room_id > product_id > product_specification_id
         """
+        # drawing_idが指定された場合は、他のパラメータに関係なく図面の画像のみを返す
+        if drawing_id is not None:
+            return image_crud.get_images(db, drawing_id=drawing_id)
+
         if not include_children:
-            # 指定された階層の画像のみを取得
+            # 指定された階層の画像のみを取得（drawing以外）
             return image_crud.get_images(
                 db,
                 property_id=property_id,
@@ -210,7 +221,7 @@ class ImageService:
 
         # include_children=Trueの場合の処理
         if property_id:
-            # 物件に関連する全ての画像を取得
+            # 物件に関連する全ての画像を取得（drawing以外）
             return image_crud.get_images(db, property_id=property_id)
         elif room_id:
             # 部屋に関連する全ての画像を取得

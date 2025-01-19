@@ -146,35 +146,23 @@ class ProductCreate(ProductBase):
 
 class ProductSchema(BaseModel):
     id: Optional[int] = None
-    property_id: Optional[int] = None
     room_id: Optional[int] = None
-    product_category_id: int
-    manufacturer_id: Optional[int] = None
     name: str
-    product_code: str
     description: Optional[str] = None
-    catalog_url: Optional[str] = None
-    product_category_name: Optional[str] = None
+    product_category_id: Optional[int] = None
     manufacturer_name: Optional[str] = None
+    product_code: Optional[str] = None
+    catalog_url: Optional[str] = None
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+    status: Optional[str] = None
+    is_deleted: Optional[bool] = None
+    specifications: Optional[List["ProductSpecificationSchema"]] = None
+    dimensions: Optional[List["ProductDimensionSchema"]] = None
+    images: Optional[List["ImageSchema"]] = None
 
-    model_config = ConfigDict(
-        from_attributes=True,
-        protected_namespaces=()
-    )
-
-    @model_validator(mode='after')
-    def set_related_names(self) -> 'ProductSchema':
-        if hasattr(self, '__dict__'):
-            if 'product_category' in self.__dict__:
-                category = self.__dict__['product_category']
-                if category and hasattr(category, 'name'):
-                    self.product_category_name = category.name
-
-            if 'manufacturer' in self.__dict__:
-                manufacturer = self.__dict__['manufacturer']
-                if manufacturer and hasattr(manufacturer, 'name'):
-                    self.manufacturer_name = manufacturer.name
-        return self
+    class Config:
+        from_attributes = True
 
 
 class ProductDetailSchema(ProductSchema):
@@ -195,8 +183,20 @@ class RoomCreate(RoomBase):
     property_id: int
 
 
-class RoomSchema(RoomBase):
-    pass
+class RoomSchema(BaseModel):
+    id: Optional[int] = None
+    property_id: Optional[int] = None
+    name: str
+    description: Optional[str] = None
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+    status: Optional[str] = None
+    is_deleted: Optional[bool] = None
+    products: Optional[List["ProductSchema"]] = None
+    images: Optional[List["ImageSchema"]] = None
+
+    class Config:
+        from_attributes = True
 
 
 class RoomDetailSchema(RoomBase):
@@ -206,7 +206,7 @@ class RoomDetailSchema(RoomBase):
 
 class PropertySchema(BaseModel):
     id: Optional[int] = None
-    user_id: int
+    user_id: Optional[int] = None
     name: str
     description: Optional[str] = None
     property_type: str
@@ -218,9 +218,14 @@ class PropertySchema(BaseModel):
     building_area: Optional[float] = None
     floor_count: Optional[int] = None
     structure: Optional[str] = None
-    design_company_id: Optional[int] = None
-    construction_company_id: Optional[int] = None
-    created_at: datetime
+    design_company: Optional[str] = None
+    construction_company: Optional[str] = None
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+    status: Optional[str] = None
+    is_deleted: Optional[bool] = None
+    rooms: Optional[List["RoomSchema"]] = None
+    images: Optional[List["ImageSchema"]] = None
 
     class Config:
         from_attributes = True

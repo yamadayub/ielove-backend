@@ -1,4 +1,3 @@
-
 from sqlalchemy.orm import Session
 from app.models import Room
 from app.schemas import RoomSchema
@@ -11,7 +10,8 @@ class RoomCRUD(BaseCRUD[Room, RoomSchema, RoomSchema]):
         super().__init__(Room)
 
     def create(self, db: Session, *, obj_in: RoomSchema) -> Room:
-        db_obj = Room(**obj_in.dict())
+        obj_dict = obj_in.model_dump()
+        db_obj = Room(**obj_dict)
         db.add(db_obj)
         db.commit()
         db.refresh(db_obj)
@@ -40,38 +40,18 @@ class RoomCRUD(BaseCRUD[Room, RoomSchema, RoomSchema]):
         skip: int = 0,
         limit: int = 100
     ) -> List[Room]:
-        """
-        指定された物件に紐付く部屋の一覧を取得する
-
-        Args:
-            db (Session): データベースセッション
-            property_id (int): 物件ID
-            skip (int): スキップする件数
-            limit (int): 取得する最大件数
-
-        Returns:
-            List[Room]: 部屋のリスト
-        """
-        return (
-            db.query(Room)
-            .filter(Room.property_id == property_id)
-            .offset(skip)
-            .limit(limit)
+        """指定された物件IDに紐づく部屋一覧を取得"""
+        return db.query(self.model)\
+            .filter(self.model.property_id == property_id, self.model.is_deleted == False)\
+            .offset(skip)\
+            .limit(limit)\
             .all()
-        )
 
     def get(self, db: Session, id: int) -> Optional[Room]:
-        """
-        指定されたIDの部屋を取得する
-
-        Args:
-            db (Session): データベースセッション
-            id (int): 部屋ID
-
-        Returns:
-            Optional[Room]: 部屋オブジェクト。存在しない場合はNone
-        """
-        return db.query(Room).filter(Room.id == id).first()
+        """指定されたIDの部屋を取得"""
+        return db.query(self.model)\
+            .filter(self.model.id == id, self.model.is_deleted == False)\
+            .first()
 
 
 room = RoomCRUD()

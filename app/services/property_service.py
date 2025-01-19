@@ -27,8 +27,9 @@ class PropertyService:
         """物件の基本情報と標準的な部屋、デフォルトの製品を作成する"""
         # 物件の基本情報を作成（独立したトランザクション）
         try:
-            # company_idフィールドの処理は不要になりました
-            db_property = property_crud.create(db, obj_in=property_data)
+            property_dict = property_data.model_dump()
+            db_property = property_crud.create(
+                db, obj_in=PropertySchema(**property_dict))
             db.commit()
         except Exception as e:
             db.rollback()
@@ -166,6 +167,8 @@ class PropertyService:
             "design_company": property.design_company,
             "construction_company": property.construction_company,
             "created_at": property.created_at,
+            "updated_at": property.updated_at,
+            "status": property.status,
             "images": property_images,
             "rooms": []
         }
@@ -180,6 +183,8 @@ class PropertyService:
                 "description": room.description,
                 "property_id": room.property_id,
                 "created_at": room.created_at,
+                "updated_at": room.updated_at,
+                "status": room.status,
                 "images": room_images,
                 "products": []
             }
@@ -199,6 +204,8 @@ class PropertyService:
                     "product_code": product.product_code,
                     "catalog_url": product.catalog_url,
                     "created_at": product.created_at,
+                    "updated_at": product.updated_at,
+                    "status": product.status,
                     "images": product_images,
                     "specifications": product.specifications,
                     "dimensions": product.dimensions
@@ -215,7 +222,6 @@ class PropertyService:
             # Create property record
             property_dict = property_data.model_dump(
                 exclude={'rooms', 'images'})
-            # company_idフィールドの処理は不要になりました
             db_property = property_crud.create(
                 db, obj_in=PropertySchema(**property_dict))
 

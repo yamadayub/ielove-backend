@@ -15,7 +15,9 @@ class RoomService:
         """部屋情報とデフォルトの製品を作成する"""
         try:
             # 部屋情報を作成
-            db_room = room_crud.create(db, obj_in=room_data)
+            room_dict = room_data.model_dump()
+            room_dict['status'] = 'default'  # ステータスを'default'に設定
+            db_room = room_crud.create(db, obj_in=RoomSchema(**room_dict))
 
             # 部屋タイプごとのデフォルトプロダクトカテゴリID
             room_product_categories = {
@@ -43,7 +45,8 @@ class RoomService:
                         name=category_dict[category_id],
                         room_id=db_room.id,
                         product_category_id=category_id,
-                        description=f"{category_dict[category_id]}の説明"
+                        description=f"{category_dict[category_id]}の説明",
+                        status='default'  # ステータスを'default'に設定
                     )
                     product_crud.create(db, obj_in=product_data)
 
@@ -104,7 +107,10 @@ class RoomService:
         if not db_room:
             raise HTTPException(status_code=404, detail="Room not found")
 
-        for field, value in room_data.model_dump(exclude_unset=True).items():
+        update_data = room_data.model_dump(exclude_unset=True)
+        update_data['status'] = 'updated'  # ステータスを'updated'に設定
+
+        for field, value in update_data.items():
             setattr(db_room, field, value)
 
         try:
@@ -157,6 +163,8 @@ class RoomService:
             "description": room.description,
             "property_id": room.property_id,
             "created_at": room.created_at,
+            "updated_at": room.updated_at,
+            "status": room.status,
             "images": room_images,
             "products": [],
             # 物件の基本情報
@@ -179,6 +187,8 @@ class RoomService:
                 "product_code": product.product_code,
                 "catalog_url": product.catalog_url,
                 "created_at": product.created_at,
+                "updated_at": product.updated_at,
+                "status": product.status,
                 "images": product_images,
                 "specifications": product.specifications,
                 "dimensions": product.dimensions

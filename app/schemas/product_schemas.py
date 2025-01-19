@@ -16,6 +16,10 @@ class ProductSchema(BaseModel):
     product_code: Optional[str] = None
     description: Optional[str] = None
     catalog_url: Optional[str] = None
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+    status: Optional[str] = None
+    is_deleted: Optional[bool] = None
 
     class Config:
         from_attributes = True

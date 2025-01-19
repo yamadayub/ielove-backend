@@ -22,8 +22,9 @@ class PropertySchema(BaseModel):
     design_company: Optional[str] = None
     construction_company: Optional[str] = None
     created_at: Optional[datetime] = None
-    is_deleted: Optional[bool] = False
-    deleted_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+    status: Optional[str] = None
+    is_deleted: Optional[bool] = None
 
     class Config:
         from_attributes = True

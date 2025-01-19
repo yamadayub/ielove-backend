@@ -75,7 +75,7 @@ class Room(Base):
     status = Column(String, nullable=False, default='default')
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
-    is_deleted = Column(Boolean, default=False, nullable=False)
+    is_deleted = Column(Boolean, nullable=False, default=False)
 
     property = relationship("Property", back_populates="rooms")
     products = relationship("Product",
@@ -115,7 +115,7 @@ class Product(Base):
     status = Column(String, nullable=False, default='default')
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
-    is_deleted = Column(Boolean, default=False, nullable=False)
+    is_deleted = Column(Boolean, nullable=False, default=False)
 
     room = relationship("Room", back_populates="products")
     product_category = relationship("ProductCategory",

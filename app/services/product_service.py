@@ -13,7 +13,9 @@ from app.crud.image import image as image_crud
 class ProductService:
     def create_product(self, db: Session, product_data: ProductSchema) -> ProductSchema:
         """製品情報を作成する"""
-        return product_crud.create(db, obj_in=product_data)
+        product_dict = product_data.model_dump()
+        product_dict['status'] = 'default'  # ステータスを'default'に設定
+        return product_crud.create(db, obj_in=ProductSchema(**product_dict))
 
     def get_product(self, db: Session, product_id: int) -> Optional[ProductSchema]:
         """製品情報を取得する"""
@@ -56,7 +58,9 @@ class ProductService:
             "manufacturer_name": product.manufacturer_name,
             "product_code": product.product_code,
             "catalog_url": product.catalog_url,
+            "status": product.status,
             "created_at": product.created_at,
+            "updated_at": product.updated_at,
             "specifications": product.specifications,
             "dimensions": product.dimensions,
             "images": product_images,
@@ -76,7 +80,10 @@ class ProductService:
         if not db_product:
             raise HTTPException(status_code=404, detail="Product not found")
 
-        for field, value in product_data.model_dump(exclude_unset=True).items():
+        update_data = product_data.model_dump(exclude_unset=True)
+        update_data['status'] = 'updated'  # ステータスを'updated'に設定
+
+        for field, value in update_data.items():
             setattr(db_product, field, value)
 
         try:

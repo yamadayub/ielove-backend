@@ -46,6 +46,9 @@ class PropertyProductsResponse(BaseModel):
     specifications: List[ProductSpecificationSchema] = []
     dimensions: List[ProductDimensionSchema] = []
     created_at: datetime
+    updated_at: Optional[datetime] = None
+    status: Optional[str] = None
+    is_deleted: Optional[bool] = None
 
     class Config:
         from_attributes = True
@@ -65,5 +68,8 @@ class PropertyProductsResponse(BaseModel):
             manufacturer_name=product.manufacturer_name,
             specifications=product.specifications,
             dimensions=product.dimensions,
-            created_at=product.created_at
+            created_at=product.created_at,
+            updated_at=product.updated_at,
+            status=product.status,
+            is_deleted=product.is_deleted
         )

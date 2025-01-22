@@ -26,10 +26,10 @@ class Settings(BaseSettings):
         "http://ie-love.com",
         "https://www.ie-love.com",
         "http://www.ie-love.com",
-        "https://ietsuku.jp/",
-        "https://www.ietsuku.jp/",
-        "http://ietsuku.jp/",
-        "http://www.ietsuku.jp/",
+        "https://ietsuku.jp",
+        "https://www.ietsuku.jp",
+        "http://ietsuku.jp",
+        "http://www.ietsuku.jp"
     ]
 
     # JWT設定

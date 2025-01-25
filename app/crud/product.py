@@ -53,6 +53,7 @@ class ProductCRUD(CRUDBase[Product, ProductSchema, ProductSchema]):
     ) -> List[Product]:
         """指定された部屋IDに紐づく製品一覧を取得"""
         return db.query(self.model)\
+            .options(joinedload(Product.product_category))\
             .filter(self.model.room_id == room_id, self.model.is_deleted == False)\
             .offset(skip)\
             .limit(limit)\

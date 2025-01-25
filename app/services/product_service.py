@@ -25,7 +25,12 @@ class ProductService:
         """
         指定された部屋IDに紐づく製品一覧を取得
         """
-        return product_crud.get_products_by_room(db, room_id=room_id, skip=skip, limit=limit)
+        products = product_crud.get_products_by_room(
+            db, room_id=room_id, skip=skip, limit=limit)
+        for product in products:
+            if product.product_category:
+                product.product_category_name = product.product_category.name
+        return products
 
     def get_product_details(self, db: Session, product_id: int):
         """製品の詳細情報を関連データと共に取得"""

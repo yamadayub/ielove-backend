@@ -22,6 +22,8 @@ def get_me(
     print("Headers:", request.headers)
     print("Clerk User ID:", request.headers.get("x-clerk-user-id"))
     print("Current User:", current_user)
+    if not current_user:
+        return None
     return current_user
 
 
@@ -33,9 +35,11 @@ def get_seller_profile(
     """
     現在のユーザーの販売者プロフィールを取得します。
     """
+    if not current_user:
+        return None
     profile = user_service.get_seller_profile(db, current_user.id)
     if not profile:
-        raise HTTPException(status_code=404, detail="Seller profile not found")
+        return None
     return profile
 
 
@@ -54,7 +58,7 @@ def update_user(
     """
     updated_user = user_service.update_user(db, user_id, user_update)
     if not updated_user:
-        raise HTTPException(status_code=404, detail="User not found")
+        return None
     return updated_user
 
 
@@ -74,7 +78,7 @@ def update_seller_profile(
     updated_profile = user_service.update_seller_profile(
         db, user_id, profile_update)
     if not updated_profile:
-        raise HTTPException(status_code=404, detail="Seller profile not found")
+        return None
     return updated_profile
 
 

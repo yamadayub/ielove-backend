@@ -4,6 +4,7 @@ from typing import Dict, Any, Optional
 from sqlalchemy.orm import Session
 from datetime import datetime
 from enum import Enum
+from sqlalchemy import or_
 
 from app.config import get_settings
 from app.models import Transaction, TransactionAuditLog, TransactionErrorLog, ListingItem
@@ -177,31 +178,29 @@ class StripeService:
                 print("[DEBUG] No source_transaction (charge_id) found")
                 return
 
-            # まずcharge_idでトランザクションを検索
-            print(
-                f"[DEBUG] Searching for transaction with charge_id: {source_transaction}")
-            transaction = db.query(Transaction).filter(
-                Transaction.charge_id == source_transaction
-            ).first()
-
-            # charge_idで見つからない場合は、charge_idからpayment_intent_idを取得して検索
-            if not transaction:
+            # トランザクションの検索（OR条件で複数の条件を指定）
+            print("[DEBUG] Searching for transaction with multiple conditions")
+            try:
+                # charge_idからpayment_intent_idを取得
+                charge = stripe.Charge.retrieve(source_transaction)
+                payment_intent_id = charge.payment_intent
                 print(
-                    "[DEBUG] Transaction not found with charge_id, retrieving payment_intent_id from charge")
-                try:
-                    charge = stripe.Charge.retrieve(source_transaction)
-                    payment_intent_id = charge.payment_intent
-                    print(
-                        f"[DEBUG] Retrieved payment_intent_id from charge: {payment_intent_id}")
+                    f"[DEBUG] Retrieved payment_intent_id from charge: {payment_intent_id}")
 
-                    if payment_intent_id:
-                        print(
-                            f"[DEBUG] Searching for transaction with payment_intent_id: {payment_intent_id}")
-                        transaction = db.query(Transaction).filter(
-                            Transaction.payment_intent_id == payment_intent_id
-                        ).first()
-                except stripe.error.StripeError as e:
-                    print(f"[ERROR] Failed to retrieve charge: {str(e)}")
+                # OR条件で検索
+                transaction = db.query(Transaction).filter(
+                    or_(
+                        Transaction.charge_id == source_transaction,
+                        Transaction.payment_intent_id == payment_intent_id
+                    )
+                ).first()
+
+            except stripe.error.StripeError as e:
+                print(f"[ERROR] Failed to retrieve charge: {str(e)}")
+                # charge_idのみで検索
+                transaction = db.query(Transaction).filter(
+                    Transaction.charge_id == source_transaction
+                ).first()
 
             if transaction:
                 print(f"[DEBUG] Found existing transaction: {transaction.id}")
@@ -212,7 +211,8 @@ class StripeService:
                 # transfer_statusとtransfer_idを更新
                 transaction.transfer_status = TransferStatus.SUCCEEDED
                 transaction.stripe_transfer_id = transfer_id
-                transaction.charge_id = source_transaction  # charge_idも更新
+                if not transaction.charge_id:  # charge_idが未設定の場合のみ更新
+                    transaction.charge_id = source_transaction
                 transaction.updated_at = datetime.utcnow()
 
                 print(

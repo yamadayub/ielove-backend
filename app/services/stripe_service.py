@@ -210,8 +210,7 @@ class StripeService:
                 print(f"[DEBUG] Current transfer_status: {old_status}")
 
                 # transfer_statusとtransfer_idを更新
-                new_transfer_status = TransferStatus.SUCCEEDED if not is_reversed else TransferStatus.FAILED
-                transaction.transfer_status = new_transfer_status
+                transaction.transfer_status = TransferStatus.SUCCEEDED
                 transaction.stripe_transfer_id = transfer_id
                 transaction.charge_id = source_transaction  # charge_idも更新
                 transaction.updated_at = datetime.utcnow()

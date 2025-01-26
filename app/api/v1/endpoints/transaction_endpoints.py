@@ -140,6 +140,8 @@ async def create_checkout_session(
 ) -> CheckoutSessionResponse:
     """Stripeのチェックアウトセッションを作成する"""
 
+    print("[DEBUG] Checkout request body:", request.model_dump())
+
     # ListingItemの取得と検証
     listing_item = db.query(ListingItem).options(
         joinedload(ListingItem.property),

@@ -366,10 +366,6 @@ class StripeService:
                     },
                 },
                 customer=buyer_profile.stripe_customer_id,
-                customer_update={
-                    'address': 'auto',
-                    'name': 'auto',
-                },
                 metadata={
                     'listing_id': str(listing_item.id),
                     'buyer_id': str(buyer_profile.id),

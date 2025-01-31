@@ -7,8 +7,8 @@ WITH listing AS (
 )
 -- 取引レコードの作成
 INSERT INTO transactions (
-    buyer_id,
-    seller_id,
+    buyer_user_id,
+    seller_user_id,
     listing_id,
     payment_intent_id,
     total_amount,
@@ -20,8 +20,8 @@ INSERT INTO transactions (
     created_at,
     updated_at
 ) VALUES (
-    (SELECT id FROM buyer_profiles WHERE stripe_customer_id = 'cus_test123'),  -- buyer_id
-    (SELECT seller_id FROM listing_items WHERE id = (SELECT id FROM listing)), -- seller_id
+    (SELECT user_id FROM buyer_profiles WHERE stripe_customer_id = 'cus_test123'),  -- buyer_user_id
+    (SELECT user_id FROM users WHERE id = (SELECT seller_user_id FROM listing_items WHERE id = (SELECT id FROM listing))), -- seller_user_id
     (SELECT id FROM listing),                                                  -- listing_id
     'pi_test_completed_123',                                                   -- payment_intent_id
     50000,                                                                     -- total_amount

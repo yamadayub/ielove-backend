@@ -6,7 +6,7 @@ from app.enums import ListingType, Visibility, ListingStatus
 
 class ListingItem(BaseModel):
     id: Optional[int] = None
-    seller_id: Optional[int] = None
+    seller_user_id: Optional[int] = None
     title: str
     description: Optional[str] = None
     price: int = Field(gt=0)

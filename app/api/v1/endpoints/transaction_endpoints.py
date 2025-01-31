@@ -29,14 +29,6 @@ async def get_purchased_transactions(
 ) -> PurchasedTransactionsResponse:
     """ログインユーザーの購入済み物件一覧を取得"""
 
-    # BuyerProfileの取得
-    buyer_profile = db.query(BuyerProfile).filter(
-        BuyerProfile.user_id == current_user.id
-    ).first()
-
-    if not buyer_profile:
-        return PurchasedTransactionsResponse(transactions=[])
-
     # 購入済み取引の取得
     transactions = db.query(Transaction).join(
         ListingItem, Transaction.listing_id == ListingItem.id
@@ -44,7 +36,7 @@ async def get_purchased_transactions(
         Property, ListingItem.property_id == Property.id
     ).filter(
         and_(
-            Transaction.buyer_id == buyer_profile.id,
+            Transaction.buyer_user_id == current_user.id,
             Transaction.transaction_status == TransactionStatus.COMPLETED
         )
     ).options(
@@ -95,15 +87,6 @@ async def check_transaction_status(
     if not current_user:
         return TransactionCheckResponse(isPurchased=False)
 
-    # BuyerProfileの取得
-    buyer_profile = db.query(BuyerProfile).filter(
-        BuyerProfile.user_id == current_user.id
-    ).first()
-
-    if not buyer_profile:
-        # BuyerProfileが存在しない場合は未購入として扱う
-        return TransactionCheckResponse(isPurchased=False)
-
     # 取引記録の確認
     # N+1問題を避けるためJOINを使用
     transaction = db.query(Transaction).join(
@@ -111,7 +94,7 @@ async def check_transaction_status(
     ).filter(
         and_(
             ListingItem.property_id == property_id,
-            Transaction.buyer_id == buyer_profile.id,
+            Transaction.buyer_user_id == current_user.id,
             Transaction.transaction_status == TransactionStatus.COMPLETED
         )
     ).order_by(
@@ -178,7 +161,7 @@ async def create_checkout_session(
     existing_transaction = db.query(Transaction).filter(
         and_(
             Transaction.listing_id == listing_item.id,
-            Transaction.buyer_id == buyer_profile.id,
+            Transaction.buyer_user_id == current_user.id,
             Transaction.transaction_status == TransactionStatus.COMPLETED
         )
     ).first()

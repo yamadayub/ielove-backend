@@ -9,8 +9,8 @@ from app.schemas.listing_item_schemas import ListingItem
 
 class TransactionSchema(BaseModel):
     id: Optional[int] = None
-    buyer_id: int
-    seller_id: int
+    buyer_user_id: int
+    seller_user_id: int
     listing_id: int
     payment_intent_id: str
     total_amount: int

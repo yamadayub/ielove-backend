@@ -368,8 +368,8 @@ class StripeService:
                 customer=buyer_profile.stripe_customer_id,
                 metadata={
                     'listing_id': str(listing_item.id),
-                    'buyer_id': str(buyer_profile.id),
-                    'seller_id': str(seller_profile.id),
+                    'buyer_user_id': str(buyer_profile.user_id),
+                    'seller_user_id': str(seller_profile.user_id),
                     'platform_fee': str(platform_fee),
                     'transfer_amount': str(transfer_amount)
                 },
@@ -385,8 +385,8 @@ class StripeService:
             print("[DEBUG] Creating initial transaction record")
             transaction = Transaction(
                 listing_id=listing_item.id,
-                buyer_id=buyer_profile.id,
-                seller_id=seller_profile.id,
+                buyer_user_id=buyer_profile.user_id,
+                seller_user_id=seller_profile.user_id,
                 session_id=session.id,  # セッションIDを保存
                 total_amount=total_amount,
                 platform_fee=platform_fee,

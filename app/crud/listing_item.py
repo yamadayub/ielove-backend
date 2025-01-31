@@ -7,11 +7,11 @@ from .base import CRUDBase
 
 
 class CRUDListingItem(CRUDBase[ListingItem, ListingItemSchema, ListingItemSchema]):
-    def create(self, db: Session, *, obj_in: ListingItemSchema, seller_id: int) -> ListingItem:
-        obj_data = obj_in.model_dump(exclude={'seller_id', 'status'})
+    def create(self, db: Session, *, obj_in: ListingItemSchema, seller_user_id: int) -> ListingItem:
+        obj_data = obj_in.model_dump(exclude={'seller_user_id', 'status'})
         db_obj = ListingItem(
             **obj_data,
-            seller_id=seller_id,
+            seller_user_id=seller_user_id,
             status="DRAFT"
         )
         db.add(db_obj)
@@ -23,13 +23,13 @@ class CRUDListingItem(CRUDBase[ListingItem, ListingItemSchema, ListingItemSchema
         self,
         db: Session,
         *,
-        seller_id: int,
+        seller_user_id: int,
         skip: int = 0,
         limit: int = 100
     ) -> List[ListingItem]:
         return (
             db.query(self.model)
-            .filter(ListingItem.seller_id == seller_id)
+            .filter(ListingItem.seller_user_id == seller_user_id)
             .order_by(desc(ListingItem.created_at))
             .offset(skip)
             .limit(limit)

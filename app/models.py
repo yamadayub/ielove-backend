@@ -1,5 +1,5 @@
 from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Text, Float, Boolean, JSON, Enum, Index, Numeric, Sequence
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import relationship, foreign
 from sqlalchemy.sql import func
 from app.database import Base
 from app.enums import (
@@ -206,6 +206,7 @@ class User(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     last_sign_in = Column(DateTime(timezone=True))
 
+    # Relationships
     properties = relationship("Property", back_populates="user")
     seller_profile = relationship(
         "SellerProfile", back_populates="user", uselist=False)
@@ -213,6 +214,11 @@ class User(Base):
         "BuyerProfile", back_populates="user", uselist=False)
     take_rates = relationship(
         "TakeRate", foreign_keys="[TakeRate.user_id]", back_populates="user")
+    seller_listings = relationship("ListingItem", back_populates="seller_user")
+    buyer_transactions = relationship(
+        "Transaction", foreign_keys="[Transaction.buyer_user_id]", back_populates="buyer_user")
+    seller_transactions = relationship(
+        "Transaction", foreign_keys="[Transaction.seller_user_id]", back_populates="seller_user")
 
 
 class BuyerProfile(Base):
@@ -245,25 +251,21 @@ class BuyerProfile(Base):
 
     # Relationships
     user = relationship("User", back_populates="buyer_profile")
-    saved_payment_methods = relationship(
-        "SavedPaymentMethod", back_populates="buyer_profile", cascade="all, delete-orphan")
-    transactions = relationship(
-        "Transaction", back_populates="buyer", foreign_keys="[Transaction.buyer_id]")
 
 
 class SavedPaymentMethod(Base):
     __tablename__ = "saved_payment_methods"
     __table_args__ = (
-        Index('ix_saved_payment_methods_buyer_default',
-              'buyer_profile_id', 'is_default'),
+        Index('ix_saved_payment_methods_user_default',
+              'user_id', 'is_default'),
         Index('ix_saved_payment_methods_active_type',
               'is_active', 'payment_type'),
     )
 
     id = Column(Integer, Sequence(
         'saved_payment_methods_id_seq'), primary_key=True)
-    buyer_profile_id = Column(Integer, ForeignKey(
-        "buyer_profiles.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey(
+        "users.id"), nullable=False)
 
     # Stripe Payment Method情報
     payment_method_id = Column(String, unique=True, nullable=False)
@@ -281,8 +283,7 @@ class SavedPaymentMethod(Base):
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
     # Relationships
-    buyer_profile = relationship(
-        "BuyerProfile", back_populates="saved_payment_methods")
+    user = relationship("User", backref="saved_payment_methods")
 
 
 class SellerProfile(Base):
@@ -305,9 +306,6 @@ class SellerProfile(Base):
 
     # Relationships
     user = relationship("User", back_populates="seller_profile")
-    listings = relationship("ListingItem", back_populates="seller")
-    transactions = relationship(
-        "Transaction", back_populates="seller", foreign_keys="[Transaction.seller_id]")
 
 
 class ListingItem(Base):
@@ -315,15 +313,15 @@ class ListingItem(Base):
     __table_args__ = (
         Index('ix_listing_items_status_visibility', 'status', 'visibility'),
         Index('ix_listing_items_price', 'price'),
-        Index('ix_listing_items_seller_created', 'seller_id', 'created_at'),
+        Index('ix_listing_items_seller_user_created',
+              'seller_user_id', 'created_at'),
         Index('ix_listing_items_property_status', 'property_id', 'status'),
         Index('ix_listing_items_room_status', 'room_id', 'status'),
         Index('ix_listing_items_product_status', 'product_id', 'status'),
     )
 
     id = Column(Integer, Sequence('listing_items_id_seq'), primary_key=True)
-    seller_id = Column(Integer, ForeignKey(
-        "seller_profiles.id"), nullable=False)
+    seller_user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     title = Column(String, nullable=False)
     description = Column(Text)
     price = Column(Integer, nullable=False)
@@ -341,7 +339,7 @@ class ListingItem(Base):
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     published_at = Column(DateTime(timezone=True), nullable=True)
 
-    seller = relationship("SellerProfile", back_populates="listings")
+    seller_user = relationship("User", back_populates="seller_listings")
     property = relationship("Property", back_populates="listings")
     room = relationship("Room", back_populates="listings")
     product = relationship("Product", back_populates="listings")
@@ -355,14 +353,15 @@ class Transaction(Base):
         Index('ix_transactions_transaction_status', 'transaction_status'),
         Index('ix_transactions_payment_transfer_status',
               'payment_status', 'transfer_status'),
-        Index('ix_transactions_buyer_created', 'buyer_id', 'created_at'),
-        Index('ix_transactions_seller_created', 'seller_id', 'created_at'),
+        Index('ix_transactions_buyer_user_created',
+              'buyer_user_id', 'created_at'),
+        Index('ix_transactions_seller_user_created',
+              'seller_user_id', 'created_at'),
     )
 
     id = Column(Integer, Sequence('transactions_id_seq'), primary_key=True)
-    buyer_id = Column(Integer, ForeignKey("buyer_profiles.id"), nullable=False)
-    seller_id = Column(Integer, ForeignKey(
-        "seller_profiles.id"), nullable=False)
+    buyer_user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    seller_user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     listing_id = Column(Integer, ForeignKey(
         "listing_items.id"), nullable=False)
     session_id = Column(String, nullable=True)
@@ -388,10 +387,10 @@ class Transaction(Base):
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
     # Relationships
-    buyer = relationship("BuyerProfile", foreign_keys=[
-        buyer_id], back_populates="transactions")
-    seller = relationship("SellerProfile", foreign_keys=[
-        seller_id], back_populates="transactions")
+    buyer_user = relationship("User", foreign_keys=[
+                              buyer_user_id], back_populates="buyer_transactions")
+    seller_user = relationship("User", foreign_keys=[
+                               seller_user_id], back_populates="seller_transactions")
     listing = relationship("ListingItem", back_populates="transactions")
     audit_logs = relationship(
         "TransactionAuditLog", back_populates="transaction", cascade="all, delete-orphan")

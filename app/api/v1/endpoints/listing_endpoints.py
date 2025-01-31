@@ -50,7 +50,7 @@ def create_listing(
     return listing_item.create(
         db=db,
         obj_in=listing,
-        seller_id=current_user.seller_profile.id
+        seller_user_id=current_user.id
     )
 
 
@@ -69,7 +69,7 @@ def get_listings(
         )
     return listing_item.get_multi_by_seller(
         db=db,
-        seller_id=current_user.seller_profile.id,
+        seller_user_id=current_user.id,
         skip=skip,
         limit=limit
     )
@@ -99,7 +99,7 @@ def get_my_listings(
         )
 
     query = db.query(ListingItem)\
-        .filter(ListingItem.seller_id == current_user.seller_profile.id)
+        .filter(ListingItem.seller_user_id == current_user.id)
 
     if status:
         try:
@@ -137,7 +137,7 @@ def get_listing(
         raise HTTPException(status_code=404, detail="Listing not found")
 
     # 自分の物件の場合のみ、非公開でも閲覧可能
-    if current_user.seller_profile and db_listing.seller_id == current_user.seller_profile.id:
+    if current_user.seller_profile and db_listing.seller_user_id == current_user.id:
         return db_listing
 
     # 他人の物件の場合は、公開されているもののみ閲覧可能
@@ -159,7 +159,7 @@ def update_listing(
     db_listing = listing_item.get(db=db, id=listing_id)
     if not db_listing:
         raise HTTPException(status_code=404, detail="Listing not found")
-    if db_listing.seller_id != current_user.seller_profile.id:
+    if db_listing.seller_user_id != current_user.id:
         raise HTTPException(status_code=403, detail="Not enough permissions")
 
     if listing_in.listing_type == "PROPERTY_SPECS" and listing_in.property_id:
@@ -186,7 +186,7 @@ def delete_listing(
     db_listing = listing_item.get(db=db, id=listing_id)
     if not db_listing:
         raise HTTPException(status_code=404, detail="Listing not found")
-    if db_listing.seller_id != current_user.seller_profile.id:
+    if db_listing.seller_user_id != current_user.id:
         raise HTTPException(status_code=403, detail="Not enough permissions")
     return listing_item.remove(db=db, id=listing_id)
 

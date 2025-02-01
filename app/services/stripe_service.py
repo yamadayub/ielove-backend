@@ -307,45 +307,65 @@ class StripeService:
         seller_profile: Any,
         transaction_id: int,
         platform_fee: int,
-        transfer_amount: int,
-    ) -> Dict[str, Any]:
+        transfer_amount: int
+    ) -> Dict[str, str]:
         """Stripeのチェックアウトセッションを作成する"""
+
+        print("[DEBUG] Creating Stripe checkout session")
+
+        if not seller_profile.seller_profile or not seller_profile.seller_profile.stripe_account_id:
+            raise ValueError("Seller does not have a Stripe account")
+
         try:
-            print("[DEBUG] Creating Stripe checkout session")
-            session = stripe.checkout.Session.create(
-                mode="payment",
-                line_items=[{
-                    'price_data': {
-                        'currency': 'jpy',
-                        'product_data': {
-                            'name': f'物件情報: {listing_item.property.name}',
-                            'description': listing_item.description or '',
+            # セッションのパラメータを構築
+            session_params = {
+                "mode": "payment",
+                "payment_method_types": ["card"],
+                "line_items": [{
+                    "price_data": {
+                        "currency": "jpy",
+                        "product_data": {
+                            "name": listing_item.title,
+                            "description": listing_item.description
                         },
-                        'unit_amount': listing_item.price,
+                        "unit_amount": listing_item.price
                     },
-                    'quantity': 1,
+                    "quantity": 1
                 }],
-                payment_intent_data={
-                    'application_fee_amount': platform_fee,
-                    'transfer_data': {
-                        'destination': seller_profile.stripe_account_id,
+                "payment_intent_data": {
+                    "application_fee_amount": platform_fee,
+                    "transfer_data": {
+                        "destination": seller_profile.seller_profile.stripe_account_id,
+                        "amount": transfer_amount
                     },
+                    "metadata": {
+                        "transaction_id": str(transaction_id),
+                        "buyer_user_id": str(buyer_profile.user_id),
+                        "seller_user_id": str(listing_item.seller_user_id)
+                    }
                 },
-                customer=buyer_profile.stripe_customer_id,
-                metadata={
-                    'transaction_id': str(transaction_id)
-                },
-                success_url=f"{settings.BASE_URL}/checkout/success",
-                cancel_url=f"{settings.BASE_URL}/checkout/cancel",
-            )
+                "success_url": f"{self.frontend_url}/checkout/success",
+                "cancel_url": f"{self.frontend_url}/checkout/cancel",
+                "metadata": {
+                    "transaction_id": str(transaction_id),
+                    "buyer_user_id": str(buyer_profile.user_id),
+                    "seller_user_id": str(listing_item.seller_user_id)
+                }
+            }
+
+            # customer_idが存在する場合のみ追加
+            if buyer_profile.stripe_customer_id:
+                session_params["customer"] = buyer_profile.stripe_customer_id
+
+            # セッションの作成
+            session = stripe.checkout.Session.create(**session_params)
 
             print(f"[DEBUG] Created session: {session.id}")
             print(f"[DEBUG] Payment Intent ID: {session.payment_intent}")
-            print(f"[DEBUG] Full session object: {session}")
 
             return {
-                'sessionId': session.id,
-                'url': session.url,
+                "sessionId": session.id,
+                "url": session.url
             }
         except stripe.error.StripeError as e:
             print(f"[ERROR] Stripe error in create_checkout_session: {str(e)}")

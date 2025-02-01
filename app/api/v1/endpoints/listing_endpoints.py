@@ -216,7 +216,7 @@ async def get_listing_items_by_property(
         select(ListingItem)
         .options(
             joinedload(ListingItem.property),
-            joinedload(ListingItem.seller).joinedload(SellerProfile.user)
+            joinedload(ListingItem.seller_user)
         )
         .join(Property)
         .filter(
@@ -248,8 +248,8 @@ async def get_listing_items_by_property(
 
         if include_seller:
             response_item["seller"] = {
-                "id": item.seller.id,
-                "name": item.seller.user.name
+                "id": item.seller_user.id,
+                "name": item.seller_user.name
             }
         else:
             response_item["seller"] = None

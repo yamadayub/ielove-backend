@@ -7,7 +7,7 @@ from typing import Dict, Any
 
 from app.auth.dependencies import get_db, get_current_user, get_current_user_optional
 from app.models import User, Property, ListingItem, Transaction, BuyerProfile, TransactionAuditLog, TransactionErrorLog
-from app.enums import TransactionStatus, ListingStatus, TransferStatus, ChangeType, ErrorType
+from app.enums import TransactionStatus, ListingStatus, TransferStatus, ChangeType, ErrorType, PaymentStatus
 from app.schemas.transaction_schemas import (
     TransactionCheckResponse,
     PurchasedTransactionsResponse,
@@ -18,6 +18,7 @@ from app.schemas.transaction_schemas import (
 from app.schemas.checkout_schemas import CheckoutSessionCreate, CheckoutSessionResponse
 from app.services.stripe_service import stripe_service, WebhookType
 from app.services.buyer_profile_service import buyer_profile_service
+from app.services.take_rate_service import take_rate_service
 
 router = APIRouter(prefix="/transactions", tags=["transactions"])
 
@@ -175,18 +176,54 @@ async def create_checkout_session(
             }
         )
 
-    # Stripeセッションの作成
-    session = await stripe_service.create_checkout_session(
-        listing_item=listing_item,
-        buyer_profile=buyer_profile,
-        seller_profile=listing_item.seller,
-        db=db
-    )
+    # 手数料計算
+    total_amount = listing_item.price
+    take_rate = await take_rate_service.get_take_rate(db, listing_item.seller_user_id)
+    platform_fee = int(total_amount * (take_rate / 100))
+    transfer_amount = total_amount - platform_fee
 
-    return CheckoutSessionResponse(
-        sessionId=session["sessionId"],
-        url=session["url"]
+    # トランザクションレコードを作成
+    transaction = Transaction(
+        listing_id=listing_item.id,
+        buyer_user_id=buyer_profile.user_id,
+        seller_user_id=listing_item.seller_user_id,
+        total_amount=total_amount,
+        platform_fee=platform_fee,
+        seller_amount=transfer_amount,
+        transaction_status=TransactionStatus.PENDING,
+        payment_status=PaymentStatus.PENDING,
+        transfer_status=TransferStatus.PENDING,
+        created_at=datetime.utcnow(),
+        updated_at=datetime.utcnow()
     )
+    db.add(transaction)
+    db.commit()
+    db.refresh(transaction)
+
+    try:
+        # Stripeセッションの作成
+        session = await stripe_service.create_checkout_session(
+            listing_item=listing_item,
+            buyer_profile=buyer_profile,
+            seller_profile=listing_item.seller,
+            transaction_id=transaction.id,
+            platform_fee=platform_fee,
+            transfer_amount=transfer_amount
+        )
+
+        # セッションIDを更新
+        transaction.session_id = session["sessionId"]
+        db.commit()
+
+        return CheckoutSessionResponse(
+            sessionId=session["sessionId"],
+            url=session["url"]
+        )
+    except Exception as e:
+        # エラーが発生した場合はトランザクションを削除
+        db.delete(transaction)
+        db.commit()
+        raise
 
 
 @router.post("/webhook", include_in_schema=False)

@@ -129,7 +129,7 @@ async def create_checkout_session(
     # ListingItemの取得と検証
     listing_item = db.query(ListingItem).options(
         joinedload(ListingItem.property),
-        joinedload(ListingItem.seller)
+        joinedload(ListingItem.seller_user)
     ).filter(
         ListingItem.id == request.listingId
     ).first()
@@ -205,7 +205,7 @@ async def create_checkout_session(
         session = await stripe_service.create_checkout_session(
             listing_item=listing_item,
             buyer_profile=buyer_profile,
-            seller_profile=listing_item.seller,
+            seller_profile=listing_item.seller_user,
             transaction_id=transaction.id,
             platform_fee=platform_fee,
             transfer_amount=transfer_amount

@@ -24,7 +24,6 @@ STRIPE_TRANSFER_STATUS_FAILED = "failed"
 
 class WebhookType(Enum):
     PAYMENT = "payment"
-    CONNECT = "connect"
 
 
 class StripeService:
@@ -35,8 +34,7 @@ class StripeService:
         stripe.api_key = settings.STRIPE_SECRET_KEY
         self.frontend_url = settings.BASE_URL
         self.webhook_secrets = {
-            WebhookType.PAYMENT: settings.STRIPE_TRANSACTION_WEBHOOK_SECRET,
-            WebhookType.CONNECT: settings.STRIPE_CONNECT_WEBHOOK_SECRET
+            WebhookType.PAYMENT: settings.STRIPE_TRANSACTION_WEBHOOK_SECRET
         }
 
     @staticmethod

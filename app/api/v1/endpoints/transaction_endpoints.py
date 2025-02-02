@@ -260,31 +260,3 @@ async def stripe_webhook(
         print(f"Webhook error: {str(e)}")
         # Stripeに再試行させないよう200を返す
         return {"status": "error", "message": str(e)}
-
-
-@router.post("/webhook/connect", include_in_schema=False)
-async def stripe_connect_webhook(request: Request, db: Session = Depends(get_db)):
-    """Stripe Connectからのwebhookを処理する"""
-    payload = await request.body()
-    sig_header = request.headers.get("stripe-signature")
-
-    try:
-        event = stripe_service.verify_webhook_signature(
-            payload,
-            sig_header,
-            WebhookType.TRANSFER
-        )
-
-        # イベントタイプに基づいて処理
-        if event["type"] == "transfer.created":
-            transfer = event["data"]["object"]
-            await stripe_service.handle_transfer_created(db, transfer)
-            return {"status": "success"}
-        else:
-            print(f"Received unhandled event type: {event['type']}")
-            return {"status": "received"}
-
-    except ValueError as e:
-        print(f"Webhook error: {str(e)}")
-        # Stripeに再試行させないよう200を返す
-        return {"status": "error", "message": str(e)}

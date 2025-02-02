@@ -25,7 +25,6 @@ STRIPE_TRANSFER_STATUS_FAILED = "failed"
 class WebhookType(Enum):
     PAYMENT = "payment"
     CONNECT = "connect"
-    TRANSFER = "transfer"
 
 
 class StripeService:
@@ -37,8 +36,7 @@ class StripeService:
         self.frontend_url = settings.BASE_URL
         self.webhook_secrets = {
             WebhookType.PAYMENT: settings.STRIPE_TRANSACTION_WEBHOOK_SECRET,
-            WebhookType.CONNECT: settings.STRIPE_CONNECT_WEBHOOK_SECRET,
-            WebhookType.TRANSFER: settings.STRIPE_TRANSFER_WEBHOOK_SECRET
+            WebhookType.CONNECT: settings.STRIPE_CONNECT_WEBHOOK_SECRET
         }
 
     @staticmethod
@@ -154,86 +152,6 @@ class StripeService:
         except stripe.error.StripeError as e:
             raise HTTPException(status_code=400, detail=str(e))
 
-    async def handle_transfer_created(
-        self,
-        db: Session,
-        transfer: Dict[str, Any]
-    ) -> None:
-        """
-        transfer.createdイベントを処理する
-        このイベントは売り手への送金が完了したことを示す
-        """
-        try:
-            # 基本情報の取得
-            transfer_id = transfer.get("id")
-            transaction_id = transfer.get("metadata", {}).get("transaction_id")
-
-            print(f"[DEBUG] Transfer Created - Basic Info:")
-            print(f"[DEBUG] transfer_id: {transfer_id}")
-            print(f"[DEBUG] transaction_id: {transaction_id}")
-
-            if not transaction_id:
-                print("[WARNING] No transaction_id found in transfer metadata")
-                return
-
-            # トランザクションの検索
-            print(
-                f"[DEBUG] Searching for transaction with ID: {transaction_id}")
-            transaction = db.query(Transaction).filter(
-                Transaction.id == int(transaction_id)
-            ).first()
-
-            if transaction:
-                print(f"[DEBUG] Found transaction: {transaction.id}")
-                # 既存のトランザクションを更新
-                old_status = transaction.transfer_status.value if transaction.transfer_status else None
-                print(f"[DEBUG] Current transfer_status: {old_status}")
-
-                # transfer_statusとtransfer_idを更新
-                transaction.transfer_status = TransferStatus.SUCCEEDED
-                transaction.stripe_transfer_id = transfer_id
-                transaction.updated_at = datetime.utcnow()
-
-                print(
-                    f"[DEBUG] Updated transfer_status to: {transaction.transfer_status.value}")
-                print(f"[DEBUG] Updated transfer_id to: {transfer_id}")
-
-                # 監査ログを追加
-                audit_log = TransactionAuditLog(
-                    transaction_id=transaction.id,
-                    field_name="transfer_status",
-                    change_type=ChangeType.WEBHOOK,
-                    old_value=old_status,
-                    new_value=transaction.transfer_status.value
-                )
-                db.add(audit_log)
-                print(
-                    f"[DEBUG] Added audit log for status change: {old_status} -> {transaction.transfer_status.value}")
-
-                print("[DEBUG] Committing transaction to database")
-                db.commit()
-                print("[DEBUG] Successfully committed transaction")
-            else:
-                print(
-                    f"[WARNING] No transaction found for ID: {transaction_id}")
-
-        except Exception as e:
-            db.rollback()
-            print(f"[ERROR] Error in handle_transfer_created: {str(e)}")
-            print(f"[ERROR] Full error details: {repr(e)}")
-            if transaction and transaction.id:
-                error_log = TransactionErrorLog(
-                    transaction_id=transaction.id,
-                    error_type=ErrorType.SYSTEM_ERROR,
-                    error_message=str(e),
-                    created_at=datetime.utcnow()
-                )
-                db.add(error_log)
-                db.commit()
-                print(
-                    f"[DEBUG] Added error log for transaction {transaction.id}")
-            raise
-
     async def handle_checkout_completed(
         self,
         db: Session,
@@ -337,12 +255,7 @@ class StripeService:
                 "payment_intent_data": {
                     "transfer_data": {
                         "destination": seller.seller_profile.stripe_account_id,
-                        "amount": transfer_amount,
-                        "metadata": {
-                            "transaction_id": str(transaction_id),
-                            "buyer_user_id": str(buyer_profile.user_id),
-                            "seller_user_id": str(listing_item.seller_user_id)
-                        }
+                        "amount": transfer_amount
                     },
                     "metadata": {
                         "transaction_id": str(transaction_id),
@@ -368,6 +281,20 @@ class StripeService:
 
             print(f"[DEBUG] Created session: {session.id}")
             print(f"[DEBUG] Payment Intent ID: {session.payment_intent}")
+
+            # payment_intent_idをトランザクションに保存
+            if session.payment_intent:
+                payment_intent = stripe.PaymentIntent.retrieve(
+                    session.payment_intent)
+                transaction = db.query(Transaction).filter(
+                    Transaction.id == transaction_id
+                ).first()
+                if transaction:
+                    transaction.payment_intent_id = session.payment_intent
+                    transaction.updated_at = datetime.utcnow()
+                    db.commit()
+                    print(
+                        f"[DEBUG] Updated transaction with payment_intent_id: {session.payment_intent}")
 
             return {
                 "sessionId": session.id,
@@ -427,19 +354,32 @@ class StripeService:
                 # 既存のトランザクションを更新
                 transaction.charge_id = charge_id
                 transaction.payment_status = PaymentStatus.SUCCEEDED
+                # 支払い成功時点でtransfer_statusもSUCCEEDEDに更新
+                transaction.transfer_status = TransferStatus.SUCCEEDED
                 transaction.updated_at = datetime.utcnow()
-                print("[DEBUG] Updated payment_status to SUCCEEDED and set charge_id")
+                print(
+                    "[DEBUG] Updated payment_status and transfer_status to SUCCEEDED and set charge_id")
 
-                # 監査ログを追加
-                audit_log = TransactionAuditLog(
+                # 監査ログを追加（payment_status）
+                payment_audit_log = TransactionAuditLog(
                     transaction_id=transaction.id,
                     field_name="payment_status",
                     change_type=ChangeType.WEBHOOK,
                     old_value=transaction.payment_status.value if transaction.payment_status else None,
                     new_value=PaymentStatus.SUCCEEDED.value
                 )
-                db.add(audit_log)
-                print("[DEBUG] Added audit log for payment status update")
+                db.add(payment_audit_log)
+
+                # 監査ログを追加（transfer_status）
+                transfer_audit_log = TransactionAuditLog(
+                    transaction_id=transaction.id,
+                    field_name="transfer_status",
+                    change_type=ChangeType.WEBHOOK,
+                    old_value=transaction.transfer_status.value if transaction.transfer_status else None,
+                    new_value=TransferStatus.SUCCEEDED.value
+                )
+                db.add(transfer_audit_log)
+                print("[DEBUG] Added audit logs for status updates")
 
                 print("[DEBUG] Committing transaction")
                 db.commit()

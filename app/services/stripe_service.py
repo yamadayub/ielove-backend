@@ -32,7 +32,9 @@ class StripeService:
     """Stripe関連の処理を行うサービス"""
 
     def __init__(self):
+        settings = get_settings()
         stripe.api_key = settings.STRIPE_SECRET_KEY
+        self.frontend_url = settings.BASE_URL
         self.webhook_secrets = {
             WebhookType.PAYMENT: settings.STRIPE_TRANSACTION_WEBHOOK_SECRET,
             WebhookType.CONNECT: settings.STRIPE_CONNECT_WEBHOOK_SECRET,

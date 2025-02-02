@@ -335,9 +335,14 @@ class StripeService:
                     "quantity": 1
                 }],
                 "payment_intent_data": {
-                    "application_fee_amount": platform_fee,
                     "transfer_data": {
                         "destination": seller.seller_profile.stripe_account_id,
+                        "amount": transfer_amount,
+                        "metadata": {
+                            "transaction_id": str(transaction_id),
+                            "buyer_user_id": str(buyer_profile.user_id),
+                            "seller_user_id": str(listing_item.seller_user_id)
+                        }
                     },
                     "metadata": {
                         "transaction_id": str(transaction_id),

@@ -7,7 +7,7 @@ from enum import Enum
 from sqlalchemy import or_
 
 from app.config import get_settings
-from app.models import Transaction, TransactionAuditLog, TransactionErrorLog, ListingItem
+from app.models import Transaction, TransactionAuditLog, TransactionErrorLog, ListingItem, User, BuyerProfile
 from app.enums import TransactionStatus, PaymentStatus, TransferStatus, ChangeType, ErrorType
 from app.services.take_rate_service import take_rate_service
 
@@ -304,9 +304,9 @@ class StripeService:
 
     async def create_checkout_session(
         self,
-        listing_item: Any,
-        buyer_profile: Any,
-        seller_profile: Any,
+        listing_item: ListingItem,
+        buyer_profile: BuyerProfile,
+        seller: User,
         transaction_id: int,
         platform_fee: int,
         transfer_amount: int
@@ -315,7 +315,7 @@ class StripeService:
 
         print("[DEBUG] Creating Stripe checkout session")
 
-        if not seller_profile.seller_profile or not seller_profile.seller_profile.stripe_account_id:
+        if not seller.seller_profile or not seller.seller_profile.stripe_account_id:
             raise ValueError("Seller does not have a Stripe account")
 
         try:
@@ -337,8 +337,7 @@ class StripeService:
                 "payment_intent_data": {
                     "application_fee_amount": platform_fee,
                     "transfer_data": {
-                        "destination": seller_profile.seller_profile.stripe_account_id,
-                        "amount": transfer_amount
+                        "destination": seller.seller_profile.stripe_account_id,
                     },
                     "metadata": {
                         "transaction_id": str(transaction_id),
